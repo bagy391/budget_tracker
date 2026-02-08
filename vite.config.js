@@ -20,21 +20,15 @@ export default defineConfig({
                 icons: [
                     {
                         src: '/icon-192.png',
-                        sizes: '192x192',
+                        sizes: '2048x2048',
                         type: 'image/png',
                         purpose: 'any'
                     },
                     {
                         src: '/icon-512.png',
-                        sizes: '512x512',
+                        sizes: '2048x2048',
                         type: 'image/png',
-                        purpose: 'any'
-                    },
-                    {
-                        src: '/icon-512.png',
-                        sizes: '512x512',
-                        type: 'image/png',
-                        purpose: 'maskable'
+                        purpose: 'any maskable'
                     }
                 ]
             },
@@ -53,6 +47,9 @@ export default defineConfig({
                         }
                     }
                 ]
+            },
+            devOptions: {
+                enabled: true
             }
         })
     ]
