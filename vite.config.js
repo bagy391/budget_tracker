@@ -7,7 +7,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
+            includeAssets: ['icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
             manifest: {
                 name: 'Budget Tracker',
                 short_name: 'Budget',
@@ -19,14 +19,14 @@ export default defineConfig({
                 scope: '/',
                 icons: [
                     {
-                        src: '/icon-192.png',
-                        sizes: '2048x2048',
+                        src: '/pwa-192x192.png',
+                        sizes: '192x192',
                         type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: '/icon-512.png',
-                        sizes: '2048x2048',
+                        src: '/pwa-512x512.png',
+                        sizes: '512x512',
                         type: 'image/png',
                         purpose: 'any maskable'
                     }
