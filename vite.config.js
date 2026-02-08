@@ -7,7 +7,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+            includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
             manifest: {
                 name: 'Budget Tracker',
                 short_name: 'Budget',
@@ -15,22 +15,42 @@ export default defineConfig({
                 theme_color: '#6366f1',
                 background_color: '#0f172a',
                 display: 'standalone',
+                start_url: '/',
+                scope: '/',
                 icons: [
                     {
-                        src: 'pwa-192x192.png',
+                        src: '/icon-192.png',
                         sizes: '192x192',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any'
                     },
                     {
-                        src: 'pwa-512x512.png',
-                        sizes: '512x512',
-                        type: 'image/png'
-                    },
-                    {
-                        src: 'pwa-512x512.png',
+                        src: '/icon-512.png',
                         sizes: '512x512',
                         type: 'image/png',
-                        purpose: 'any maskable'
+                        purpose: 'any'
+                    },
+                    {
+                        src: '/icon-512.png',
+                        sizes: '512x512',
+                        type: 'image/png',
+                        purpose: 'maskable'
+                    }
+                ]
+            },
+            workbox: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+                runtimeCaching: [
+                    {
+                        urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'supabase-cache',
+                            expiration: {
+                                maxEntries: 10,
+                                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                            }
+                        }
                     }
                 ]
             }

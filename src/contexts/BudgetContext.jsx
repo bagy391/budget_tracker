@@ -47,7 +47,18 @@ export const BudgetProvider = ({ children }) => {
 
             // Set current family if not set
             if (!currentFamily && familyList.length > 0) {
-                setCurrentFamily(familyList[0]);
+                // Try to load saved family ID from localStorage
+                const savedFamilyId = localStorage.getItem('selectedFamilyId');
+                let familyToSet = familyList[0];
+
+                if (savedFamilyId) {
+                    const savedFamily = familyList.find(f => f.id === savedFamilyId);
+                    if (savedFamily) {
+                        familyToSet = savedFamily;
+                    }
+                }
+
+                setCurrentFamily(familyToSet);
             } else if (familyList.length === 0) {
                 // No families, stop loading
                 setLoading(false);
@@ -283,6 +294,10 @@ export const BudgetProvider = ({ children }) => {
     // Switch family
     const switchFamily = async (family) => {
         setCurrentFamily(family);
+        // Save selected family to localStorage
+        if (family?.id) {
+            localStorage.setItem('selectedFamilyId', family.id);
+        }
     };
 
     // Add expense
