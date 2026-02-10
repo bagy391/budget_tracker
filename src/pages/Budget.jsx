@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency, calculateBudgetStats } from '../utils/calculations';
-import { format, startOfMonth, endOfMonth, differenceInDays, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, startOfDay } from 'date-fns';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -79,7 +79,7 @@ const Budget = () => {
     }
 
     // Calculate progress bar position for current date
-    const today = new Date();
+    const today = startOfDay(new Date());
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
     const totalDays = differenceInDays(monthEnd, monthStart) + 1;
@@ -131,6 +131,11 @@ const Budget = () => {
                                 <span className="budget-progress-label">
                                     Remaining: {formatCurrency(stats.remaining)}
                                 </span>
+                            </div>
+
+                            <div className="budget-progress-dates">
+                                <span className="budget-date-label">{format(monthStart, 'MMM dd')}</span>
+                                <span className="budget-date-label">{format(monthEnd, 'MMM dd')}</span>
                             </div>
                         </div>
 
@@ -222,8 +227,9 @@ const Budget = () => {
                         </form>
                     </div>
                 </Card>
-            )}
-        </div>
+            )
+            }
+        </div >
     );
 };
 

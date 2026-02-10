@@ -81,11 +81,22 @@
     display: flex;
     justify-content: space-between;
     font-size: 0.9375rem;
+    margin-bottom: var(--space-xs);
 }
 
 .budget-progress-label {
     color: var(--text-secondary);
     font-weight: 500;
+}
+
+.budget-progress-dates {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8125rem;
+}
+
+.budget-date-label {
+    color: var(--text-muted);
 }
 
 .budget-stats {

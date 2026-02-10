@@ -1,4 +1,4 @@
-import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, isWithinInterval, startOfDay } from 'date-fns';
 
 /**
  * Calculate budget statistics
@@ -31,7 +31,7 @@ export const calculateBudgetStats = (budget, expenses) => {
     const percentage = budgetAmount > 0 ? (spent / budgetAmount) * 100 : 0;
 
     // Calculate days left
-    const today = new Date();
+    const today = startOfDay(new Date());
     const endDate = parseISO(budget.end_date);
     const daysLeft = Math.max(0, differenceInDays(endDate, today) + 1);
 
