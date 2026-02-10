@@ -1,0 +1,83 @@
+.wealth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+}
+
+.asset-type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: var(--space-sm);
+}
+
+.asset-type-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-md);
+    background: var(--bg-tertiary);
+    border: 2px solid transparent;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    color: var(--text-secondary);
+}
+
+.asset-type-btn:hover {
+    background: #475569;
+    border-color: var(--primary);
+}
+
+.asset-type-btn.active {
+    background: var(--primary-dark);
+    border-color: var(--primary);
+    color: var(--text-primary);
+}
+
+.asset-icon {
+    font-size: 2rem;
+}
+
+.asset-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-align: center;
+}
+
+.share-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+}
+
+.share-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.share-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.share-item label {
+    cursor: pointer;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    .asset-type-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .asset-label {
+        font-size: 0.6875rem;
+    }
+}

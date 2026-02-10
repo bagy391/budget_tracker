@@ -9,8 +9,27 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Cart
 import './Dashboard.css';
 
 const Dashboard = () => {
-    const { expenses, incomes, budgets, categories, paymentMethods, loading } = useBudget();
+    const { expenses, incomes, budgets, categories, paymentMethods, wealthAssets, currentFamily, loading } = useBudget();
     const [period, setPeriod] = useState('3months');
+
+    // Hook to get window width for responsive pie charts
+    const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1024);
+
+    React.useEffect(() => {
+        const handleResize = () => setWindowWidth(window.innerWidth);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    // Responsive pie chart sizing
+    const pieChartSize = useMemo(() => {
+        if (windowWidth <= 480) {
+            return { radius: 85, height: 280 };
+        } else if (windowWidth <= 768) {
+            return { radius: 95, height: 290 };
+        }
+        return { radius: 110, height: 320 };
+    }, [windowWidth]);
 
     const periodOptions = [
         { value: 'month', label: 'This Month' },
@@ -201,6 +220,74 @@ const Dashboard = () => {
         });
     }, [filteredExpenses, filteredIncomes, dateRange]);
 
+    // Calculate wealth statistics
+    const wealthStats = useMemo(() => {
+        const myAssets = wealthAssets.filter(a => a.isOwner);
+        const sharedAssets = wealthAssets.filter(a => !a.isOwner);
+
+        console.log('=== Wealth Stats Debug ===');
+        console.log('Total wealthAssets:', wealthAssets.length);
+        console.log('My assets:', myAssets.length);
+        console.log('Shared assets:', sharedAssets.length);
+
+        // My Current Wealth: Only my own assets
+        const myTotal = myAssets.reduce((sum, a) => sum + (parseFloat(a.current_amount) || 0), 0);
+        const myInvested = myAssets.reduce((sum, a) => sum + (parseFloat(a.invested_amount) || 0), 0);
+        const myGains = myTotal - myInvested;
+        const myROI = myInvested > 0 ? ((myGains / myInvested) * 100) : 0;
+
+        // Group my assets by type
+        const myAssetsByType = myAssets.reduce((acc, asset) => {
+            const type = asset.asset_type;
+            if (!acc[type]) {
+                acc[type] = { total: 0, count: 0 };
+            }
+            acc[type].total += parseFloat(asset.current_amount) || 0;
+            acc[type].count += 1;
+            return acc;
+        }, {});
+
+        // Family Wealth: My assets + shared assets from family members
+        const familyAssets = [...myAssets, ...sharedAssets];
+        const familyTotal = familyAssets.reduce((sum, a) => sum + (parseFloat(a.current_amount) || 0), 0);
+        const familyInvested = familyAssets.reduce((sum, a) => sum + (parseFloat(a.invested_amount) || 0), 0);
+        const familyGains = familyTotal - familyInvested;
+        const familyROI = familyInvested > 0 ? ((familyGains / familyInvested) * 100) : 0;
+
+        // Group family assets by type (including both my assets and shared assets)
+        const familyAssetsByType = familyAssets.reduce((acc, asset) => {
+            const type = asset.asset_type;
+            if (!acc[type]) {
+                acc[type] = { total: 0, count: 0 };
+            }
+            acc[type].total += parseFloat(asset.current_amount) || 0;
+            acc[type].count += 1;
+            return acc;
+        }, {});
+
+        console.log('My Wealth Total:', myTotal);
+        console.log('Family Wealth Total:', familyTotal);
+        console.log('Family hasData:', familyAssets.length > 0);
+        console.log('My assets by type:', myAssetsByType);
+        console.log('Family assets by type:', familyAssetsByType);
+        console.log('All my assets:', myAssets.map(a => ({ name: a.asset_name, type: a.asset_type })));
+        console.log('All family assets:', familyAssets.map(a => ({ name: a.asset_name, type: a.asset_type })));
+
+        return {
+            my: { total: myTotal, invested: myInvested, gains: myGains, roi: myROI, byType: myAssetsByType },
+            family: { total: familyTotal, invested: familyInvested, gains: familyGains, roi: familyROI, byType: familyAssetsByType, hasData: familyAssets.length > 0 }
+        };
+    }, [wealthAssets, currentFamily]);
+
+    const ASSET_TYPE_LABELS = {
+        mutual_fund: { label: 'Mutual Funds', icon: '📈', color: '#3b82f6' },
+        stock: { label: 'Stocks', icon: '📊', color: '#8b5cf6' },
+        epf: { label: 'EPF', icon: '🏦', color: '#10b981' },
+        nps: { label: 'NPS', icon: '🏛️', color: '#f59e0b' },
+        bank: { label: 'Bank', icon: '💰', color: '#06b6d4' },
+        fd: { label: 'Fixed Deposits', icon: '🏅', color: '#ec4899' }
+    };
+
     if (loading) {
         return <LoadingSpinner fullScreen />;
     }
@@ -294,6 +381,189 @@ const Dashboard = () => {
                     </div>
                 </Card>
             </div>
+
+            {/* My Wealth Section */}
+            {wealthStats.my.total > 0 && (
+                <Card className="wealth-section">
+                    <h3 className="chart-title">💎 My Wealth</h3>
+                    <div className="wealth-summary">
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">Total</span>
+                            <span className="wealth-stat-value">{formatCurrency(wealthStats.my.total)}</span>
+                        </div>
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">Invested</span>
+                            <span className="wealth-stat-value">{formatCurrency(wealthStats.my.invested)}</span>
+                        </div>
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">Gains/Loss</span>
+                            <span className={`wealth-stat-value ${wealthStats.my.gains >= 0 ? 'positive' : 'negative'}`}>
+                                {wealthStats.my.gains >= 0 ? '📈' : '📉'} {formatCurrency(Math.abs(wealthStats.my.gains))}
+                            </span>
+                        </div>
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">ROI</span>
+                            <span className={`wealth-stat-value ${wealthStats.my.roi >= 0 ? 'positive' : 'negative'}`}>
+                                {wealthStats.my.roi.toFixed(2)}%
+                            </span>
+                        </div>
+                    </div>
+                    {Object.keys(wealthStats.my.byType).length > 0 && (
+                        <>
+                            <ResponsiveContainer width="100%" height={pieChartSize.height}>
+                                <PieChart>
+                                    <Pie
+                                        data={Object.entries(wealthStats.my.byType).map(([type, data]) => ({
+                                            name: ASSET_TYPE_LABELS[type]?.label || type,
+                                            value: data.total,
+                                            icon: ASSET_TYPE_LABELS[type]?.icon,
+                                            color: ASSET_TYPE_LABELS[type]?.color
+                                        }))}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={(entry) => {
+                                            // Hide labels on desktop (>768px) to prevent overlap, show on mobile/tablet
+                                            if (windowWidth > 768) return null;
+                                            const percentage = (entry.percent * 100).toFixed(1);
+                                            return parseFloat(percentage) >= 1 ? `${entry.icon} ${percentage}%` : entry.icon;
+                                        }}
+                                        innerRadius={pieChartSize.radius * 0.6}
+                                        outerRadius={pieChartSize.radius}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        paddingAngle={2}
+                                        stroke="#1e293b"
+                                        strokeWidth={2}
+                                    >
+                                        {Object.entries(wealthStats.my.byType).map(([type], index) => (
+                                            <Cell key={`cell-${index}`} fill={ASSET_TYPE_LABELS[type]?.color || getChartColor(index)} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={<CustomPieTooltip />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="chart-legend" style={{ marginTop: 'var(--space-md)' }}>
+                                {Object.entries(wealthStats.my.byType)
+                                    .sort((a, b) => b[1].total - a[1].total)
+                                    .map(([type, data]) => {
+                                        const typeInfo = ASSET_TYPE_LABELS[type];
+                                        const percentage = ((data.total / wealthStats.my.total) * 100).toFixed(1);
+                                        return (
+                                            <div key={type} className="legend-item">
+                                                <div className="legend-indicator" style={{ backgroundColor: typeInfo?.color }}></div>
+                                                <span className="legend-icon">{typeInfo?.icon}</span>
+                                                <span className="legend-label">{typeInfo?.label || type}</span>
+                                                <span className="legend-value">{formatCurrency(data.total)} ({percentage}%)</span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </>
+                    )}
+                </Card>
+            )}
+
+            {/* Family Wealth Section - Only show if user has assets in current family */}
+            {wealthStats.family.hasData && (
+                <Card className="wealth-section">
+                    <h3 className="chart-title">👨‍👩‍👧‍👦 Family Wealth</h3>
+                    <div className="wealth-summary">
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">Total</span>
+                            <span className="wealth-stat-value">{formatCurrency(wealthStats.family.total)}</span>
+                        </div>
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">Invested</span>
+                            <span className="wealth-stat-value">{formatCurrency(wealthStats.family.invested)}</span>
+                        </div>
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">Gains/Loss</span>
+                            <span className={`wealth-stat-value ${wealthStats.family.gains >= 0 ? 'positive' : 'negative'}`}>
+                                {wealthStats.family.gains >= 0 ? '📈' : '📉'} {formatCurrency(Math.abs(wealthStats.family.gains))}
+                            </span>
+                        </div>
+                        <div className="wealth-stat">
+                            <span className="wealth-stat-label">ROI</span>
+                            <span className={`wealth-stat-value ${wealthStats.family.roi >= 0 ? 'positive' : 'negative'}`}>
+                                {wealthStats.family.roi.toFixed(2)}%
+                            </span>
+                        </div>
+                    </div>
+                    {Object.keys(wealthStats.family.byType).length > 0 && (
+                        <>
+                            <ResponsiveContainer width="100%" height={pieChartSize.height}>
+                                <PieChart>
+                                    <Pie
+                                        data={Object.entries(wealthStats.family.byType).map(([type, data]) => ({
+                                            name: ASSET_TYPE_LABELS[type]?.label || type,
+                                            value: data.total,
+                                            icon: ASSET_TYPE_LABELS[type]?.icon,
+                                            color: ASSET_TYPE_LABELS[type]?.color
+                                        }))}
+                                        cx="50%"
+                                        cy="50%"
+                                        labelLine={false}
+                                        label={(entry) => {
+                                            // Hide labels on desktop (>768px) to prevent overlap, show on mobile/tablet
+                                            if (windowWidth > 768) return null;
+                                            const percentage = (entry.percent * 100).toFixed(1);
+                                            return parseFloat(percentage) >= 1 ? `${entry.icon} ${percentage}%` : entry.icon;
+                                        }}
+                                        innerRadius={pieChartSize.radius * 0.6}
+                                        outerRadius={pieChartSize.radius}
+                                        fill="#8884d8"
+                                        dataKey="value"
+                                        paddingAngle={2}
+                                        stroke="#1e293b"
+                                        strokeWidth={2}
+                                    >
+                                        {Object.entries(wealthStats.family.byType).map(([type], index) => (
+                                            <Cell key={`cell-${index}`} fill={ASSET_TYPE_LABELS[type]?.color || getChartColor(index)} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip content={<CustomPieTooltip />} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="chart-legend" style={{ marginTop: 'var(--space-md)' }}>
+                                {Object.entries(wealthStats.family.byType)
+                                    .sort((a, b) => b[1].total - a[1].total)
+                                    .map(([type, data]) => {
+                                        const typeInfo = ASSET_TYPE_LABELS[type];
+                                        const percentage = ((data.total / wealthStats.family.total) * 100).toFixed(1);
+                                        return (
+                                            <div key={type} className="legend-item">
+                                                <div className="legend-indicator" style={{ backgroundColor: typeInfo?.color }}></div>
+                                                <span className="legend-icon">{typeInfo?.icon}</span>
+                                                <span className="legend-label">{typeInfo?.label || type}</span>
+                                                <span className="legend-value">{formatCurrency(data.total)} ({percentage}%)</span>
+                                            </div>
+                                        );
+                                    })}
+                            </div>
+                        </>
+                    )}
+                </Card>
+            )}
+
+            {/* Empty state for wealth - show when no assets exist */}
+            {wealthAssets.length === 0 && (
+                <Card className="wealth-section">
+                    <div className="chart-empty" style={{ padding: 'var(--space-2xl)', textAlign: 'center' }}>
+                        <p style={{ fontSize: '4rem', marginBottom: 'var(--space-lg)' }}>💎</p>
+                        <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-sm)' }}>
+                            No Wealth Assets Yet
+                        </p>
+                        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
+                            Track your investments, savings, and assets to see your wealth grow over time
+                        </p>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            💡 Go to <strong>Settings → Wealth Assets</strong> to add your first asset
+                        </p>
+                    </div>
+                </Card>
+            )}
+
 
             <div className="dashboard-charts">
                 {/* Spending Trends */}

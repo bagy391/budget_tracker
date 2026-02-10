@@ -10,6 +10,7 @@ import Select from '../components/common/Select';
 import Modal from '../components/common/Modal';
 import EmojiPicker from '../components/common/EmojiPicker';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import WealthList from '../components/wealth/WealthList';
 import './Settings.css';
 
 const Settings = () => {
@@ -655,6 +656,14 @@ const Settings = () => {
                             ➕ Add Payment Method
                         </Button>
                     </div>
+                </Card>
+            )}
+
+            {/* Wealth Management - Only show when family exists */}
+            {currentFamily && (
+                <Card className="settings-section">
+                    <h2 className="settings-section-title">💎 Wealth Management</h2>
+                    <WealthList />
                 </Card>
             )}
 

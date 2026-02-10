@@ -115,7 +115,7 @@
 /* Chart Legend */
 .chart-legend {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: var(--space-sm);
     margin-top: var(--space-lg);
     padding-top: var(--space-lg);
@@ -129,6 +129,7 @@
     padding: var(--space-xs);
     border-radius: var(--radius-md);
     transition: background-color var(--transition-base);
+    min-width: 0;
 }
 
 .legend-item:hover {
@@ -151,16 +152,14 @@
     flex: 1;
     font-size: 0.875rem;
     color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .legend-value {
     font-weight: 600;
     font-size: 0.875rem;
     color: var(--text-primary);
-    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 /* Mobile */
@@ -195,5 +194,73 @@
 
     .legend-item {
         padding: var(--space-sm);
+    }
+
+    .legend-value {
+        font-size: 0.8125rem;
+    }
+
+    .wealth-stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+/* Wealth Sections */
+.wealth-section {
+    margin-bottom: var(--space-xl);
+}
+
+.wealth-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: var(--space-lg);
+    margin: var(--space-xl) 0;
+    padding: var(--space-lg);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+}
+
+.wealth-stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.wealth-stat-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.wealth-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.wealth-stat-value.positive {
+    color: var(--success);
+}
+
+.wealth-stat-value.negative {
+    color: var(--danger);
+}
+
+@media (max-width: 768px) {
+    .wealth-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .wealth-section {
+        padding: var(--space-md);
+    }
+}
+
+@media (max-width: 480px) {
+    .wealth-summary {
+        grid-template-columns: 1fr;
+        gap: var(--space-md);
+        padding: var(--space-md);
     }
 }

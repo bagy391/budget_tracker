@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './Modal.css';
 
 const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
@@ -27,8 +28,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 
     if (!isOpen) return null;
 
-    return (
-        <div className="modal-overlay" onClick={onClose}>
+    const modalContent = (
+        <div className="modal-overlay" style={{ zIndex: 9999, position: 'fixed', display: 'flex' }} onClick={onClose}>
             <div
                 className={`modal-content modal-content--${size}`}
                 onClick={(e) => e.stopPropagation()}
@@ -45,6 +46,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 };
 
 export default Modal;

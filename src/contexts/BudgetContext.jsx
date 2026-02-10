@@ -21,6 +21,7 @@ export const BudgetProvider = ({ children }) => {
     const [budgets, setBudgets] = useState([]);
     const [categories, setCategories] = useState([]);
     const [paymentMethods, setPaymentMethods] = useState([]);
+    const [wealthAssets, setWealthAssets] = useState([]);
     const [loading, setLoading] = useState(true);
 
     // Fetch all user families
@@ -125,6 +126,9 @@ export const BudgetProvider = ({ children }) => {
 
             if (paymentMethodsError) throw paymentMethodsError;
             setPaymentMethods(paymentMethodsData || []);
+
+            // Fetch wealth assets
+            await fetchWealthAssets(familyId);
         } catch (error) {
             console.error('Error fetching family data:', error);
         } finally {
@@ -193,6 +197,221 @@ export const BudgetProvider = ({ children }) => {
             setIncomes(data || []);
         } catch (error) {
             console.error('Error fetching incomes:', error);
+        }
+    };
+
+    // Fetch wealth assets - simplified model
+    // My Wealth: User's own assets
+    // Family Wealth: Assets from current family members shared with user
+    const fetchWealthAssets = async (familyId) => {
+        if (!user) return;
+
+        try {
+            // Fetch user's own assets
+            const { data: ownAssets, error: ownError } = await supabase
+                .from('wealth_assets')
+                .select(`
+                    *,
+                    wealth_sharing(*)
+                `)
+                .eq('user_id', user.id)
+                .order('created_at', { ascending: false });
+
+            if (ownError) throw ownError;
+
+            // Get all members of current family
+            const { data: familyMembers } = await supabase
+                .from('family_members')
+                .select('user_id')
+                .eq('family_id', familyId);
+
+            const familyMemberIds = familyMembers?.map(m => m.user_id).filter(id => id !== user.id) || [];
+
+            console.log('Current Family Members (excluding me):', familyMemberIds);
+
+            // Get shared assets using JOIN to bypass RLS
+            // Instead of: get asset_ids, then fetch assets (blocked by RLS)
+            // Do: join wealth_sharing with wealth_assets in one query
+            const { data: sharedAssetsData, error: sharedError } = await supabase
+                .from('wealth_sharing')
+                .select(`
+                    asset_id,
+                    wealth_assets (
+                        id,
+                        user_id,
+                        asset_type,
+                        asset_name,
+                        invested_amount,
+                        current_amount,
+                        maturity_amount,
+                        maturity_date,
+                        notes,
+                        created_at,
+                        updated_at
+                    )
+                `)
+                .eq('shared_with_user_id', user.id);
+
+            if (sharedError) {
+                console.error('Error fetching shared assets:', sharedError);
+            }
+
+            console.log('Shared assets raw data:', sharedAssetsData);
+
+            let sharedAssets = [];
+            if (sharedAssetsData && sharedAssetsData.length > 0) {
+                // Extract the wealth_assets data from the join
+                const assetsFromSharing = sharedAssetsData
+                    .map(s => s.wealth_assets)
+                    .filter(asset => asset !== null); // Filter out null assets
+
+                console.log('===== SHARED ASSETS DEBUG =====');
+                console.log('Number of shared assets fetched:', assetsFromSharing.length);
+                console.log('Full asset objects:', assetsFromSharing);
+
+                if (assetsFromSharing.length > 0) {
+                    assetsFromSharing.forEach((asset, idx) => {
+                        console.log(`Asset ${idx}:`, {
+                            id: asset.id,
+                            name: asset.asset_name,
+                            owner_user_id: asset.user_id
+                        });
+                    });
+                }
+                console.log('Current family member IDs:', familyMemberIds);
+
+                // Filter to only show assets from current family members
+                const familyFiltered = assetsFromSharing.filter(asset => {
+                    const isInFamily = familyMemberIds.includes(asset.user_id);
+                    console.log(`Checking asset ${asset.id} (${asset.asset_name}): owner=${asset.user_id}, isInFamily=${isInFamily}`);
+                    return isInFamily;
+                });
+                console.log('Total assets after family filter:', familyFiltered.length);
+                console.log('===== END DEBUG =====');
+
+                // Fetch owner emails
+                if (familyFiltered && familyFiltered.length > 0) {
+                    const userIds = [...new Set(familyFiltered.map(a => a.user_id))];
+                    const { data: profilesData } = await supabase
+                        .from('profiles')
+                        .select('id, email')
+                        .in('id', userIds);
+
+                    const profilesMap = {};
+                    if (profilesData) {
+                        profilesData.forEach(p => {
+                            profilesMap[p.id] = p;
+                        });
+                    }
+
+                    sharedAssets = familyFiltered.map(asset => ({
+                        ...asset,
+                        profiles: profilesMap[asset.user_id]
+                    }));
+                }
+            }
+
+            // Combine and mark ownership
+            const combined = [
+                ...(ownAssets || []).map(asset => ({ ...asset, isOwner: true })),
+                ...(sharedAssets || []).map(asset => ({ ...asset, isOwner: false }))
+            ];
+
+            setWealthAssets(combined);
+        } catch (error) {
+            console.error('Error fetching wealth assets:', error);
+        }
+    };
+
+    // Add wealth asset
+    const addWealthAsset = async (asset, sharedWithUserIds = []) => {
+        try {
+            const { data, error } = await supabase
+                .from('wealth_assets')
+                .insert([{
+                    ...asset,
+                    user_id: user.id
+                }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            // Add sharing records
+            if (sharedWithUserIds.length > 0) {
+                const sharingRecords = sharedWithUserIds.map(userId => ({
+                    asset_id: data.id,
+                    shared_with_user_id: userId
+                }));
+
+                const { error: sharingError } = await supabase
+                    .from('wealth_sharing')
+                    .insert(sharingRecords);
+
+                if (sharingError) throw sharingError;
+            }
+
+            await fetchWealthAssets(currentFamily.id);
+            return data;
+        } catch (error) {
+            console.error('Error adding wealth asset:', error);
+            throw error;
+        }
+    };
+
+    // Update wealth asset
+    const updateWealthAsset = async (assetId, updates, sharedWithUserIds = null) => {
+        try {
+            const { error } = await supabase
+                .from('wealth_assets')
+                .update(updates)
+                .eq('id', assetId);
+
+            if (error) throw error;
+
+            // Update sharing if provided
+            if (sharedWithUserIds !== null) {
+                // Delete existing shares
+                await supabase
+                    .from('wealth_sharing')
+                    .delete()
+                    .eq('asset_id', assetId);
+
+                // Add new shares
+                if (sharedWithUserIds.length > 0) {
+                    const sharingRecords = sharedWithUserIds.map(userId => ({
+                        asset_id: assetId,
+                        shared_with_user_id: userId
+                    }));
+
+                    const { error: sharingError } = await supabase
+                        .from('wealth_sharing')
+                        .insert(sharingRecords);
+
+                    if (sharingError) throw sharingError;
+                }
+            }
+
+            await fetchWealthAssets(currentFamily.id);
+        } catch (error) {
+            console.error('Error updating wealth asset:', error);
+            throw error;
+        }
+    };
+
+    // Delete wealth asset
+    const deleteWealthAsset = async (assetId) => {
+        try {
+            const { error } = await supabase
+                .from('wealth_assets')
+                .delete()
+                .eq('id', assetId);
+
+            if (error) throw error;
+            await fetchWealthAssets(currentFamily.id);
+        } catch (error) {
+            console.error('Error deleting wealth asset:', error);
+            throw error;
         }
     };
 
@@ -627,6 +846,11 @@ export const BudgetProvider = ({ children }) => {
         addPaymentMethod,
         updatePaymentMethod,
         deletePaymentMethod,
+        wealthAssets,
+        fetchWealthAssets,
+        addWealthAsset,
+        updateWealthAsset,
+        deleteWealthAsset,
         refreshData
     };
 

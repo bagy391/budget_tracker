@@ -12,6 +12,7 @@ const Signup = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [success, setSuccess] = useState(false);
     const { signUp } = useAuth();
     const navigate = useNavigate();
 
@@ -31,13 +32,46 @@ const Signup = () => {
 
         try {
             await signUp(email, password, fullName);
-            navigate('/onboarding');
+            setSuccess(true);
         } catch (error) {
             setError(error.message || 'Failed to create account');
         } finally {
             setLoading(false);
         }
     };
+
+    if (success) {
+        return (
+            <div className="auth-container">
+                <div className="auth-content">
+                    <div className="auth-header">
+                        <div style={{ fontSize: '4rem', marginBottom: '1rem', textAlign: 'center' }}>📧</div>
+                        <h1 className="auth-title gradient-text">Check Your Email</h1>
+                        <p className="auth-subtitle">We've sent a confirmation link to <strong>{email}</strong></p>
+                    </div>
+
+                    <div className="auth-form">
+                        <p style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--text-secondary)' }}>
+                            Please check your email to confirm your account. Once confirmed, you can log in to your account.
+                        </p>
+
+                        <Button
+                            onClick={() => navigate('/login')}
+                            variant="primary"
+                            fullWidth
+                        >
+                            Back to Login
+                        </Button>
+                    </div>
+                </div>
+
+                <div className="auth-decoration">
+                    <div className="auth-blob auth-blob-1"></div>
+                    <div className="auth-blob auth-blob-2"></div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="auth-container">
