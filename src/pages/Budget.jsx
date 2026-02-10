@@ -9,7 +9,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import './Budget.css';
 
 const Budget = () => {
-    const { budgets, expenses, saveBudget, loading } = useBudget();
+    const { budgets, expenses, saveBudget, loading, currentFamily } = useBudget();
     const [amount, setAmount] = useState('');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
@@ -63,7 +63,7 @@ const Budget = () => {
     }
 
     // No family selected
-    if (!currentBudget && !budgets.length && expenses.length === 0) {
+    if (!currentFamily) {
         return (
             <div className="budget">
                 <h1 className="budget-title">Budget</h1>

@@ -11,7 +11,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner';
 import './Transactions.css';
 
 const Transactions = () => {
-    const { expenses, incomes, loading } = useBudget();
+    const { expenses, incomes, loading, currentFamily } = useBudget();
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [showIncomeModal, setShowIncomeModal] = useState(false);
@@ -85,7 +85,7 @@ const Transactions = () => {
     }
 
     // No family selected
-    if (expenses.length === 0 && incomes.length === 0) {
+    if (!currentFamily) {
         return (
             <div className="transactions">
                 <h1 className="transactions-title">Transactions</h1>

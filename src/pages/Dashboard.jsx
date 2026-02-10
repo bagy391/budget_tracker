@@ -293,7 +293,7 @@ const Dashboard = () => {
     }
 
     // No family selected
-    if (expenses.length === 0 && incomes.length === 0 && budgets.length === 0) {
+    if (!currentFamily) {
         return (
             <div className="dashboard">
                 <h1 className="dashboard-title">Dashboard</h1>
