@@ -198,7 +198,8 @@ const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getD
     const daysUntilMaturity = asset.asset_type === 'fd' ? getDaysUntilMaturity(asset.maturity_date) : null;
 
     const getMaturityStatus = (days) => {
-        if (days <= 0) return 'matured';
+        if (days < 0) return 'overdue';
+        if (days === 0) return 'matured';
         if (days <= 3) return 'critical';
         if (days <= 7) return 'warning';
         if (days <= 30) return 'info';
@@ -225,7 +226,12 @@ const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getD
 
             {asset.asset_type === 'fd' && daysUntilMaturity !== null && (
                 <div className={`maturity-alert ${getMaturityStatus(daysUntilMaturity)}`}>
-                    {daysUntilMaturity <= 0 ? '🎉 Matured!' : `⏰ ${daysUntilMaturity} days until maturity`}
+                    {daysUntilMaturity < 0 
+                        ? `⚠️ Overdue by ${Math.abs(daysUntilMaturity)} days` 
+                        : daysUntilMaturity === 0 
+                            ? '🎉 Matured Today!' 
+                            : `⏰ ${daysUntilMaturity} days until maturity`
+                    }
                 </div>
             )}
 
