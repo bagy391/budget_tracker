@@ -115,7 +115,7 @@
 /* Chart Legend */
 .chart-legend {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: var(--space-sm);
     margin-top: var(--space-lg);
     padding-top: var(--space-lg);
@@ -130,6 +130,8 @@
     border-radius: var(--radius-md);
     transition: background-color var(--transition-base);
     min-width: 0;
+    overflow: hidden;
+    /* Ensure content doesn't spill out */
 }
 
 .legend-item:hover {
@@ -153,6 +155,9 @@
     font-size: 0.875rem;
     color: var(--text-secondary);
     min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .legend-value {
@@ -160,6 +165,7 @@
     font-size: 0.875rem;
     color: var(--text-primary);
     white-space: nowrap;
+    flex-shrink: 0;
 }
 
 /* Mobile */

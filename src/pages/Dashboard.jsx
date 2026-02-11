@@ -692,6 +692,7 @@ const Dashboard = () => {
                                     <Tooltip
                                         formatter={(value) => formatCurrency(value)}
                                         contentStyle={{ background: '#1e293b', border: '1px solid #334155' }}
+                                        itemStyle={{ color: '#fff' }}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
