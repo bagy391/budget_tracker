@@ -2,13 +2,15 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import './Navbar.css';
 
+import { Home, ListOrdered, LayoutDashboard, Wallet, Settings } from 'lucide-react';
+
 const Navbar = () => {
     const navItems = [
-        { path: '/', label: 'Overview', icon: '🏠' },
-        { path: '/transactions', label: 'Transactions', icon: '📝' },
-        { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-        { path: '/budgets', label: 'Budgets', icon: '💰' },
-        { path: '/settings', label: 'Settings', icon: '⚙️' }
+        { path: '/', label: 'Overview', icon: <Home size={24} strokeWidth={1.5} /> },
+        { path: '/transactions', label: 'Transactions', icon: <ListOrdered size={24} strokeWidth={1.5} /> },
+        { path: '/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={24} strokeWidth={1.5} /> },
+        { path: '/budgets', label: 'Budgets', icon: <Wallet size={24} strokeWidth={1.5} /> },
+        { path: '/settings', label: 'Settings', icon: <Settings size={24} strokeWidth={1.5} /> }
     ];
 
     return (
@@ -23,7 +25,9 @@ const Navbar = () => {
                             `navbar-item ${isActive ? 'navbar-item--active' : ''}`
                         }
                     >
-                        <span className="navbar-icon">{item.icon}</span>
+                        <div className="navbar-icon-container">
+                            <span className="navbar-icon">{item.icon}</span>
+                        </div>
                         <span className="navbar-label">{item.label}</span>
                     </NavLink>
                 ))}

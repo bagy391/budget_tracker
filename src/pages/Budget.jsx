@@ -6,6 +6,7 @@ import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { Users, BarChart2, Lightbulb, AlertTriangle, Wallet, Target } from 'lucide-react';
 import './Budget.css';
 
 const Budget = () => {
@@ -66,10 +67,12 @@ const Budget = () => {
     if (!currentFamily) {
         return (
             <div className="budget">
-                <h1 className="budget-title">Budget</h1>
+                <h1 className="budget-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Target size={28} color="var(--primary)" /> Budget
+                </h1>
                 <Card>
                     <div className="budget-empty">
-                        <div className="budget-empty-icon">👨‍👩‍👧‍👦</div>
+                        <Users size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
                         <h2>No Family Selected</h2>
                         <p>Please create or select a family from Settings to start budgeting</p>
                     </div>
@@ -95,7 +98,9 @@ const Budget = () => {
 
     return (
         <div className="budget">
-            <h1 className="budget-title">Budget</h1>
+            <h1 className="budget-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Target size={28} color="var(--primary)" /> Budget
+            </h1>
 
             {currentBudget ? (
                 <>
@@ -141,7 +146,7 @@ const Budget = () => {
 
                         <div className="budget-stats">
                             <div className="budget-stat">
-                                <div className="budget-stat-icon">📊</div>
+                                <div className="budget-stat-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><BarChart2 size={24} color="var(--primary)" /></div>
                                 <div>
                                     <p className="budget-stat-label">Used</p>
                                     <h3 className="budget-stat-value">{stats.percentage.toFixed(1)}%</h3>
@@ -149,7 +154,7 @@ const Budget = () => {
                             </div>
 
                             <div className="budget-stat">
-                                <div className="budget-stat-icon">💡</div>
+                                <div className="budget-stat-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Lightbulb size={24} color="var(--warning)" /></div>
                                 <div>
                                     <p className="budget-stat-label">Safe to Spend/Day</p>
                                     <h3 className="budget-stat-value">{formatCurrency(stats.safeToSpend)}</h3>
@@ -164,7 +169,7 @@ const Budget = () => {
                         <form onSubmit={handleSaveBudget} className="budget-form">
                             {error && (
                                 <div className="form-error">
-                                    <span>⚠️</span>
+                                    <AlertTriangle size={20} style={{ marginRight: '0.5rem' }} />
                                     {error}
                                 </div>
                             )}
@@ -176,7 +181,7 @@ const Budget = () => {
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder={`Current: ${formatCurrency(stats.total)}`}
-                                icon="💰"
+                                icon={<Wallet size={20} />}
                                 required
                             />
 
@@ -193,14 +198,14 @@ const Budget = () => {
             ) : (
                 <Card>
                     <div className="budget-empty">
-                        <div className="budget-empty-icon">💰</div>
+                        <Wallet size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
                         <h2>No Budget Set</h2>
                         <p>Set your budget for {format(currentMonth, 'MMMM yyyy')} to track your spending</p>
 
                         <form onSubmit={handleSaveBudget} className="budget-form">
                             {error && (
                                 <div className="form-error">
-                                    <span>⚠️</span>
+                                    <AlertTriangle size={20} style={{ marginRight: '0.5rem' }} />
                                     {error}
                                 </div>
                             )}
@@ -212,7 +217,7 @@ const Budget = () => {
                                 value={amount}
                                 onChange={(e) => setAmount(e.target.value)}
                                 placeholder="Enter amount..."
-                                icon="💰"
+                                icon={<Wallet size={20} />}
                                 required
                             />
 

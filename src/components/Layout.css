@@ -7,28 +7,29 @@
 .layout-content {
     flex: 1;
     padding: var(--space-lg);
-    padding-bottom: calc(80px + var(--space-lg));
-    /* Account for mobile navbar */
-    max-width: 1200px;
+    /* Mobile navbar height buffer */
+    padding-bottom: calc(90px + var(--space-lg)); 
     width: 100%;
-    margin: 0 auto;
 }
 
-/* Desktop */
+/* Desktop Layout (Rail Navigation) */
 @media (min-width: 769px) {
     .layout {
-        flex-direction: column;
+        flex-direction: row;
     }
 
     .layout-content {
-        padding-bottom: var(--space-2xl);
+        /* Side Navigation Rail width is 80px */
+        margin-left: 80px; 
+        padding-bottom: var(--space-xl); /* No bottom nav */
+        max-width: 1200px;
     }
 }
 
-/* Mobile */
+/* Tablet / Mobile Layout (Bottom Navigation) */
 @media (max-width: 768px) {
     .layout-content {
         padding: var(--space-md);
-        padding-bottom: calc(70px + var(--space-md));
+        padding-bottom: calc(90px + var(--space-md));
     }
 }

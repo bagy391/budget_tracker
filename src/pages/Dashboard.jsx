@@ -6,6 +6,8 @@ import Card from '../components/common/Card';
 import Select from '../components/common/Select';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, BarChart2, DollarSign, Wallet, TrendingUp, TrendingDown, Diamond, Landmark, Building2, Award, FolderOpen, CreditCard, Banknote, Lightbulb, LayoutDashboard } from 'lucide-react';
+import DynamicIcon from '../components/common/DynamicIcon';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -280,12 +282,12 @@ const Dashboard = () => {
     }, [wealthAssets, currentFamily]);
 
     const ASSET_TYPE_LABELS = {
-        mutual_fund: { label: 'Mutual Funds', icon: '📈', color: '#3b82f6' },
-        stock: { label: 'Stocks', icon: '📊', color: '#8b5cf6' },
-        epf: { label: 'EPF', icon: '🏦', color: '#10b981' },
-        nps: { label: 'NPS', icon: '🏛️', color: '#f59e0b' },
-        bank: { label: 'Bank', icon: '💰', color: '#06b6d4' },
-        fd: { label: 'Fixed Deposits', icon: '🏅', color: '#ec4899' }
+        mutual_fund: { label: 'Mutual Funds', icon: <TrendingUp size={16} />, color: '#3b82f6' },
+        stock: { label: 'Stocks', icon: <BarChart2 size={16} />, color: '#8b5cf6' },
+        epf: { label: 'EPF', icon: <Landmark size={16} />, color: '#10b981' },
+        nps: { label: 'NPS', icon: <Building2 size={16} />, color: '#f59e0b' },
+        bank: { label: 'Bank', icon: <Wallet size={16} />, color: '#06b6d4' },
+        fd: { label: 'Fixed Deposits', icon: <Award size={16} />, color: '#ec4899' }
     };
 
     if (loading) {
@@ -296,10 +298,12 @@ const Dashboard = () => {
     if (!currentFamily) {
         return (
             <div className="dashboard">
-                <h1 className="dashboard-title">Dashboard</h1>
+                <h1 className="dashboard-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <LayoutDashboard size={28} color="var(--primary)" /> Dashboard
+                </h1>
                 <Card>
                     <div className="chart-empty" style={{ padding: 'var(--space-2xl)' }}>
-                        <p style={{ fontSize: '4rem', marginBottom: 'var(--space-lg)' }}>👨‍👩‍👧‍👦</p>
+                        <Users size={64} color="var(--text-muted)" style={{ marginBottom: 'var(--space-lg)' }} />
                         <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-sm)' }}>
                             No Family Selected
                         </p>
@@ -331,9 +335,13 @@ const Dashboard = () => {
 
     const CustomPieTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
+            const icon = payload[0].payload.icon;
             return (
                 <div className="custom-tooltip">
-                    <p className="tooltip-label">{payload[0].payload.icon} {payload[0].name}</p>
+                    <p className="tooltip-label" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        {typeof icon === 'string' ? <DynamicIcon name={icon} size={16} /> : icon}
+                        <span>{payload[0].name}</span>
+                    </p>
                     <p style={{ color: payload[0].payload.color }}>
                         {formatCurrency(payload[0].value)}
                     </p>
@@ -346,33 +354,35 @@ const Dashboard = () => {
     return (
         <div className="dashboard">
             <div className="dashboard-header">
-                <h1 className="dashboard-title">Dashboard</h1>
+                <h1 className="dashboard-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <LayoutDashboard size={28} color="var(--primary)" /> Dashboard
+                </h1>
                 <Select
                     value={period}
                     onChange={setPeriod}
                     options={periodOptions}
-                    icon="📊"
+                    icon={<BarChart2 size={20} />}
                 />
             </div>
 
             {/* Summary Statistics */}
             <div className="dashboard-summary">
                 <Card className="summary-card">
-                    <div className="summary-icon">💰</div>
+                    <div className="summary-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><DollarSign size={24} color="var(--success)" /></div>
                     <div className="summary-content">
                         <p className="summary-label">Total Income</p>
                         <p className="summary-value income">{formatCurrency(filteredIncomes.reduce((sum, i) => sum + parseFloat(i.amount || 0), 0))}</p>
                     </div>
                 </Card>
                 <Card className="summary-card">
-                    <div className="summary-icon">💸</div>
+                    <div className="summary-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><TrendingDown size={24} color="var(--error)" /></div>
                     <div className="summary-content">
                         <p className="summary-label">Total Expenses</p>
                         <p className="summary-value expense">{formatCurrency(filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0))}</p>
                     </div>
                 </Card>
                 <Card className="summary-card">
-                    <div className="summary-icon">📊</div>
+                    <div className="summary-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Wallet size={24} color="var(--primary)" /></div>
                     <div className="summary-content">
                         <p className="summary-label">Net Savings</p>
                         <p className={`summary-value ${(filteredIncomes.reduce((sum, i) => sum + parseFloat(i.amount || 0), 0) - filteredExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0)) >= 0 ? 'income' : 'expense'}`}>
@@ -385,7 +395,9 @@ const Dashboard = () => {
             {/* My Wealth Section */}
             {wealthStats.my.total > 0 && (
                 <Card className="wealth-section">
-                    <h3 className="chart-title">💎 My Wealth</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Diamond size={20} color="var(--primary)" /> My Wealth
+                    </h3>
                     <div className="wealth-summary">
                         <div className="wealth-stat">
                             <span className="wealth-stat-label">Total</span>
@@ -397,8 +409,8 @@ const Dashboard = () => {
                         </div>
                         <div className="wealth-stat">
                             <span className="wealth-stat-label">Gains/Loss</span>
-                            <span className={`wealth-stat-value ${wealthStats.my.gains >= 0 ? 'positive' : 'negative'}`}>
-                                {wealthStats.my.gains >= 0 ? '📈' : '📉'} {formatCurrency(Math.abs(wealthStats.my.gains))}
+                            <span className={`wealth-stat-value ${wealthStats.my.gains >= 0 ? 'positive' : 'negative'}`} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {wealthStats.my.gains >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />} {formatCurrency(Math.abs(wealthStats.my.gains))}
                             </span>
                         </div>
                         <div className="wealth-stat">
@@ -426,7 +438,7 @@ const Dashboard = () => {
                                             // Hide labels on desktop (>768px) to prevent overlap, show on mobile/tablet
                                             if (windowWidth > 768) return null;
                                             const percentage = (entry.percent * 100).toFixed(1);
-                                            return parseFloat(percentage) >= 1 ? `${entry.icon} ${percentage}%` : entry.icon;
+                                            return parseFloat(percentage) >= 1 ? `${percentage}%` : null;
                                         }}
                                         innerRadius={pieChartSize.radius * 0.6}
                                         outerRadius={pieChartSize.radius}
@@ -467,7 +479,9 @@ const Dashboard = () => {
             {/* Family Wealth Section - Only show if user has assets in current family */}
             {wealthStats.family.hasData && (
                 <Card className="wealth-section">
-                    <h3 className="chart-title">👨‍👩‍👧‍👦 Family Wealth</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Users size={20} color="var(--primary)" /> Family Wealth
+                    </h3>
                     <div className="wealth-summary">
                         <div className="wealth-stat">
                             <span className="wealth-stat-label">Total</span>
@@ -479,8 +493,8 @@ const Dashboard = () => {
                         </div>
                         <div className="wealth-stat">
                             <span className="wealth-stat-label">Gains/Loss</span>
-                            <span className={`wealth-stat-value ${wealthStats.family.gains >= 0 ? 'positive' : 'negative'}`}>
-                                {wealthStats.family.gains >= 0 ? '📈' : '📉'} {formatCurrency(Math.abs(wealthStats.family.gains))}
+                            <span className={`wealth-stat-value ${wealthStats.family.gains >= 0 ? 'positive' : 'negative'}`} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                                {wealthStats.family.gains >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />} {formatCurrency(Math.abs(wealthStats.family.gains))}
                             </span>
                         </div>
                         <div className="wealth-stat">
@@ -508,7 +522,7 @@ const Dashboard = () => {
                                             // Hide labels on desktop (>768px) to prevent overlap, show on mobile/tablet
                                             if (windowWidth > 768) return null;
                                             const percentage = (entry.percent * 100).toFixed(1);
-                                            return parseFloat(percentage) >= 1 ? `${entry.icon} ${percentage}%` : entry.icon;
+                                            return parseFloat(percentage) >= 1 ? `${percentage}%` : null;
                                         }}
                                         innerRadius={pieChartSize.radius * 0.6}
                                         outerRadius={pieChartSize.radius}
@@ -550,7 +564,7 @@ const Dashboard = () => {
             {wealthAssets.length === 0 && (
                 <Card className="wealth-section">
                     <div className="chart-empty" style={{ padding: 'var(--space-2xl)', textAlign: 'center' }}>
-                        <p style={{ fontSize: '4rem', marginBottom: 'var(--space-lg)' }}>💎</p>
+                        <Diamond size={64} color="var(--primary)" style={{ marginBottom: 'var(--space-lg)' }} />
                         <p style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 'var(--space-sm)' }}>
                             No Wealth Assets Yet
                         </p>
@@ -568,7 +582,9 @@ const Dashboard = () => {
             <div className="dashboard-charts">
                 {/* Spending Trends */}
                 <Card className="chart-card">
-                    <h3 className="chart-title">💸 Spending Trends</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <TrendingDown size={20} color="var(--error)" /> Spending Trends
+                    </h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={spendingTrendsData}>
                             <defs>
@@ -600,7 +616,9 @@ const Dashboard = () => {
 
                 {/* Income vs Expense Comparison */}
                 <Card className="chart-card">
-                    <h3 className="chart-title">📊 Income vs Expense Comparison</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <BarChart2 size={20} color="var(--primary)" /> Income vs Expense
+                    </h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={comparisonData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
@@ -620,7 +638,9 @@ const Dashboard = () => {
 
                 {/* Category Breakdown */}
                 <Card className="chart-card">
-                    <h3 className="chart-title">📂 Category Breakdown</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FolderOpen size={20} color="var(--primary)" /> Category Breakdown
+                    </h3>
                     {categoryData.length > 0 ? (
                         <>
                             <ResponsiveContainer width="100%" height={300}>
@@ -650,7 +670,9 @@ const Dashboard = () => {
                                 {categoryData.map((entry, index) => (
                                     <div key={index} className="legend-item">
                                         <div className="legend-indicator" style={{ backgroundColor: entry.color }}></div>
-                                        <span className="legend-icon">{entry.icon}</span>
+                                        <span className="legend-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {typeof entry.icon === 'string' ? <DynamicIcon name={entry.icon} size={16} /> : entry.icon}
+                                        </span>
                                         <span className="legend-label">{entry.name}</span>
                                         <span className="legend-value">{formatCurrency(entry.value)}</span>
                                     </div>
@@ -666,7 +688,9 @@ const Dashboard = () => {
 
                 {/* Payment Type Breakdown */}
                 <Card className="chart-card">
-                    <h3 className="chart-title">💳 Payment Method Breakdown</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <CreditCard size={20} color="var(--primary)" /> Payment Method
+                    </h3>
                     {paymentTypeData.length > 0 ? (
                         <>
                             <ResponsiveContainer width="100%" height={300}>
@@ -715,7 +739,9 @@ const Dashboard = () => {
 
                 {/* Budget Utilization */}
                 <Card className="chart-card">
-                    <h3 className="chart-title">💰 Budget Utilization</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Wallet size={20} color="var(--primary)" /> Budget Utilization
+                    </h3>
                     {budgetUtilizationData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={budgetUtilizationData}>
@@ -751,7 +777,9 @@ const Dashboard = () => {
 
                 {/* Income Tracking */}
                 <Card className="chart-card">
-                    <h3 className="chart-title">💵 Income Tracking</h3>
+                    <h3 className="chart-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Banknote size={20} color="var(--success)" /> Income Tracking
+                    </h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={incomeData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />

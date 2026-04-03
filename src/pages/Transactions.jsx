@@ -10,6 +10,8 @@ import Input from '../components/common/Input';
 import ExpenseForm from '../components/forms/ExpenseForm';
 import IncomeForm from '../components/forms/IncomeForm';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { Users, Banknote, Plus, Inbox, Package, CircleDollarSign, Calendar, TrendingUp, TrendingDown, Wallet, Receipt } from 'lucide-react';
+import DynamicIcon from '../components/common/DynamicIcon';
 import './Transactions.css';
 
 const Transactions = () => {
@@ -137,14 +139,15 @@ const Transactions = () => {
         return <LoadingSpinner fullScreen />;
     }
 
-    // No family selected
     if (!currentFamily) {
         return (
             <div className="transactions">
-                <h1 className="transactions-title">Transactions</h1>
+                <h1 className="transactions-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Receipt size={28} color="var(--primary)" /> Transactions
+                </h1>
                 <Card>
                     <div className="empty-state">
-                        <p className="empty-icon">👨‍👩‍👧‍👦</p>
+                        <Users size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
                         <p className="empty-text">No Family Selected</p>
                         <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-md)' }}>
                             Create or select a family from Settings to view transactions
@@ -166,7 +169,9 @@ const Transactions = () => {
     return (
         <div className="transactions">
             <div className="transactions-header">
-                <h1 className="transactions-title">Transactions</h1>
+                <h1 className="transactions-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Receipt size={28} color="var(--primary)" /> Transactions
+                </h1>
                 <Select
                     value={selectedMonth}
                     onChange={(val) => {
@@ -174,24 +179,39 @@ const Transactions = () => {
                         setSelectedIds(new Set()); // Reset selection on month change
                     }}
                     options={monthOptions}
-                    icon="📅"
+                    icon={<Calendar size={20} />}
                 />
             </div>
 
             <div className="transactions-summary">
-                <Card className="summary-card summary-card--income">
-                    <p className="summary-label">Income</p>
-                    <h3 className="summary-value">{formatCurrency(totalIncome)}</h3>
+                <Card className="summary-card summary-card--income" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
+                    <div className="summary-icon" style={{ padding: '0.75rem', borderRadius: '50%', background: 'rgba(34, 197, 94, 0.1)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingUp size={24} />
+                    </div>
+                    <div>
+                        <p className="summary-label" style={{ marginBottom: '0.25rem' }}>Income</p>
+                        <h3 className="summary-value" style={{ margin: 0 }}>{formatCurrency(totalIncome)}</h3>
+                    </div>
                 </Card>
-                <Card className="summary-card summary-card--expense">
-                    <p className="summary-label">Expenses</p>
-                    <h3 className="summary-value">{formatCurrency(totalExpenses)}</h3>
+                <Card className="summary-card summary-card--expense" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
+                    <div className="summary-icon" style={{ padding: '0.75rem', borderRadius: '50%', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <TrendingDown size={24} />
+                    </div>
+                    <div>
+                        <p className="summary-label" style={{ marginBottom: '0.25rem' }}>Expenses</p>
+                        <h3 className="summary-value" style={{ margin: 0 }}>{formatCurrency(totalExpenses)}</h3>
+                    </div>
                 </Card>
-                <Card className="summary-card summary-card--net">
-                    <p className="summary-label">Net</p>
-                    <h3 className={`summary-value ${totalIncome - totalExpenses >= 0 ? 'summary-value--positive' : 'summary-value--negative'}`}>
-                        {formatCurrency(totalIncome - totalExpenses)}
-                    </h3>
+                <Card className="summary-card summary-card--net" style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '1.5rem' }}>
+                    <div className="summary-icon" style={{ padding: '0.75rem', borderRadius: '50%', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--info)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Wallet size={24} />
+                    </div>
+                    <div>
+                        <p className="summary-label" style={{ marginBottom: '0.25rem' }}>Net</p>
+                        <h3 className={`summary-value ${totalIncome - totalExpenses >= 0 ? 'summary-value--positive' : 'summary-value--negative'}`} style={{ margin: 0 }}>
+                            {formatCurrency(totalIncome - totalExpenses)}
+                        </h3>
+                    </div>
                 </Card>
             </div>
 
@@ -214,7 +234,7 @@ const Transactions = () => {
                 {filteredTransactions.length === 0 ? (
                     <Card>
                         <div className="empty-state">
-                            <p className="empty-icon">📭</p>
+                            <Inbox size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
                             <p className="empty-text">No transactions this month</p>
                         </div>
                     </Card>
@@ -239,8 +259,8 @@ const Transactions = () => {
                                         className="transaction-checkbox-input"
                                     />
                                 </div>
-                                <div className="transaction-icon">
-                                    {isExpense ? (transaction.categories?.icon || '📦') : '💰'}
+                                <div className="transaction-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    {isExpense ? <DynamicIcon name={transaction.categories?.icon || 'Package'} size={24} /> : <CircleDollarSign size={24} color="var(--success)" />}
                                 </div>
                                 <div className="transaction-details">
                                     <h4 className="transaction-title">
@@ -259,6 +279,25 @@ const Transactions = () => {
                         );
                     })
                 )}
+            </div>
+
+            <div className="fab-container" style={{ position: 'fixed', bottom: 'calc(90px + var(--space-lg))', right: 'var(--space-lg)', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-end', zIndex: 90 }}>
+                <button 
+                  className="fab fab-secondary"
+                  style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--surface-variant)', color: 'var(--on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)' }}
+                  onClick={() => setShowIncomeModal(true)}
+                  title="Add Income"
+                >
+                    <Banknote size={24} />
+                </button>
+                <button 
+                  className="fab"
+                  style={{ position: 'static', width: '64px', height: '64px', borderRadius: '16px', background: 'var(--primary-container)', color: 'var(--on-primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-lg)' }}
+                  onClick={() => setShowExpenseModal(true)}
+                  title="Add Expense"
+                >
+                    <Plus size={32} />
+                </button>
             </div>
 
             {/* Modals */}
@@ -295,7 +334,7 @@ const Transactions = () => {
                         type="date"
                         value={bulkDate}
                         onChange={(e) => setBulkDate(e.target.value)}
-                        icon="📅"
+                        icon={<Calendar size={20} />}
                     />
                     <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
                         <Button variant="ghost" onClick={() => setShowBulkDateModal(false)}>

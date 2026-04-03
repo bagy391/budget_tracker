@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { useBudget } from '../../contexts/BudgetContext';
 import Button from '../common/Button';
 import WealthForm from './WealthForm';
+import { TrendingUp, TrendingDown, BarChart2, Landmark, Building2, Wallet, Award, Edit2, Trash2, Users, AlertTriangle, PartyPopper, Clock } from 'lucide-react';
 import './WealthList.css';
 
 const ASSET_TYPE_LABELS = {
-    mutual_fund: { label: 'Mutual Fund', icon: '📈' },
-    stock: { label: 'Stock', icon: '📊' },
-    epf: { label: 'EPF', icon: '🏦' },
-    nps: { label: 'NPS', icon: '🏛️' },
-    bank: { label: 'Bank', icon: ' 💰' },
-    fd: { label: 'Fixed Deposit', icon: '🏅' }
+    mutual_fund: { label: 'Mutual Fund', icon: <TrendingUp size={16} /> },
+    stock: { label: 'Stock', icon: <BarChart2 size={16} /> },
+    epf: { label: 'EPF', icon: <Landmark size={16} /> },
+    nps: { label: 'NPS', icon: <Building2 size={16} /> },
+    bank: { label: 'Bank', icon: <Wallet size={16} /> },
+    fd: { label: 'Fixed Deposit', icon: <Award size={16} /> }
 };
 
 const WealthList = () => {
@@ -47,7 +48,8 @@ const WealthList = () => {
     };
 
     const calculateROI = (invested, current) => {
-        if (!invested || invested === 0) return 0;
+        if (!invested || invested === 0) return null; // If NO investment, don't show 0%, return null to hide.
+        if (current === undefined || current === null) return 0;
         return ((current - invested) / invested * 100).toFixed(2);
     };
 
@@ -68,8 +70,8 @@ const WealthList = () => {
         return acc;
     }, {});
 
-    const ownAssets = wealthAssets.filter(a => a.isOwner);
-    const sharedAssets = wealthAssets.filter(a => !a.isOwner);
+    const ownAssets = filteredAssets.filter(a => a.isOwner);
+    const sharedAssets = filteredAssets.filter(a => !a.isOwner);
 
     const handleAddClick = (e) => {
         e.preventDefault();
@@ -118,8 +120,8 @@ const WealthList = () => {
                         const typeInfo = ASSET_TYPE_LABELS[type];
                         return (
                             <div key={type} className="asset-type-group">
-                                <div className="asset-type-header">
-                                    <span>{typeInfo.icon} {typeInfo.label}</span>
+                                <div className="asset-type-header" style={{ display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>{typeInfo.icon} {typeInfo.label}</span>
                                     <span className="asset-count">{typeAssets.length}</span>
                                 </div>
                                 <div className="assets-grid">
@@ -151,7 +153,7 @@ const WealthList = () => {
                             return (
                                 <div key={asset.id} className="asset-card shared">
                                     <div className="asset-card-header">
-                                        <span className="asset-type-badge">
+                                        <span className="asset-type-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                                             {typeInfo.icon} {typeInfo.label}
                                         </span>
                                         <span className="shared-badge">Shared</span>
@@ -169,7 +171,46 @@ const WealthList = () => {
                                             <span className="stat-label">Current</span>
                                             <span className="stat-value">{formatCurrency(asset.current_amount)}</span>
                                         </div>
+                                        {asset.asset_type === 'fd' && asset.maturity_amount && (
+                                            <div className="stat">
+                                                <span className="stat-label">Maturity</span>
+                                                <span className="stat-value">{formatCurrency(asset.maturity_amount)}</span>
+                                            </div>
+                                        )}
                                     </div>
+                                    
+                                    {/* Shared Assets ROI */}
+                                    {(() => {
+                                        const currentVal = asset.asset_type === 'fd' && asset.maturity_amount ? asset.maturity_amount : asset.current_amount;
+                                        const roi = asset.asset_type !== 'bank' ? calculateROI(asset.invested_amount, currentVal) : null;
+                                        return roi !== null && (
+                                            <div className={`roi-badge ${parseFloat(roi) >= 0 ? 'positive' : 'negative'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginBottom: 'var(--space-md)' }}>
+                                                {parseFloat(roi) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />} {roi}% ROI
+                                            </div>
+                                        );
+                                    })()}
+                                    {asset.asset_type === 'fd' && asset.maturity_date && (() => {
+                                        const days = getDaysUntilMaturity(asset.maturity_date);
+                                        const getMaturityStatus = (d) => {
+                                            if (d < 0) return 'overdue';
+                                            if (d === 0) return 'matured';
+                                            if (d <= 3) return 'critical';
+                                            if (d <= 7) return 'warning';
+                                            if (d <= 30) return 'info';
+                                            return 'normal';
+                                        };
+                                        return (
+                                            <div className={`maturity-alert ${getMaturityStatus(days)}`}>
+                                                {days < 0 ? (
+                                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><AlertTriangle size={16} /> Overdue by {Math.abs(days)} days</span>
+                                                ) : days === 0 ? (
+                                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><PartyPopper size={16} /> Matured Today!</span>
+                                                ) : (
+                                                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><Clock size={16} /> {days} days until maturity</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             );
                         })}
@@ -194,7 +235,8 @@ const WealthList = () => {
 
 const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getDaysUntilMaturity }) => {
     const typeInfo = ASSET_TYPE_LABELS[asset.asset_type];
-    const roi = asset.asset_type !== 'bank' ? calculateROI(asset.invested_amount, asset.current_amount) : null;
+    const currentVal = asset.asset_type === 'fd' && asset.maturity_amount ? asset.maturity_amount : asset.current_amount;
+    const roi = asset.asset_type !== 'bank' ? calculateROI(asset.invested_amount, currentVal) : null;
     const daysUntilMaturity = asset.asset_type === 'fd' ? getDaysUntilMaturity(asset.maturity_date) : null;
 
     const getMaturityStatus = (days) => {
@@ -209,15 +251,15 @@ const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getD
     return (
         <div className={`asset-card ${daysUntilMaturity !== null ? getMaturityStatus(daysUntilMaturity) : ''}`}>
             <div className="asset-card-header">
-                <span className="asset-type-badge">
+                <span className="asset-type-badge" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     {typeInfo.icon} {typeInfo.label}
                 </span>
                 <div className="asset-actions">
                     <button className="icon-btn" onClick={() => onEdit(asset)} title="Edit">
-                        ✏️
+                        <Edit2 size={16} />
                     </button>
                     <button className="icon-btn delete" onClick={() => onDelete(asset.id)} title="Delete">
-                        🗑️
+                        <Trash2 size={16} />
                     </button>
                 </div>
             </div>
@@ -226,12 +268,13 @@ const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getD
 
             {asset.asset_type === 'fd' && daysUntilMaturity !== null && (
                 <div className={`maturity-alert ${getMaturityStatus(daysUntilMaturity)}`}>
-                    {daysUntilMaturity < 0 
-                        ? `⚠️ Overdue by ${Math.abs(daysUntilMaturity)} days` 
-                        : daysUntilMaturity === 0 
-                            ? '🎉 Matured Today!' 
-                            : `⏰ ${daysUntilMaturity} days until maturity`
-                    }
+                    {daysUntilMaturity < 0 ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><AlertTriangle size={16} /> Overdue by {Math.abs(daysUntilMaturity)} days</span>
+                    ) : daysUntilMaturity === 0 ? (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><PartyPopper size={16} /> Matured Today!</span>
+                    ) : (
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}><Clock size={16} /> {daysUntilMaturity} days until maturity</span>
+                    )}
                 </div>
             )}
 
@@ -255,8 +298,8 @@ const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getD
             </div>
 
             {roi !== null && (
-                <div className={`roi-badge ${parseFloat(roi) >= 0 ? 'positive' : 'negative'}`}>
-                    {parseFloat(roi) >= 0 ? '📈' : '📉'} {roi}% ROI
+                <div className={`roi-badge ${parseFloat(roi) >= 0 ? 'positive' : 'negative'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    {parseFloat(roi) >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />} {roi}% ROI
                 </div>
             )}
 
@@ -265,8 +308,8 @@ const AssetCard = ({ asset, onEdit, onDelete, formatCurrency, calculateROI, getD
             )}
 
             {asset.wealth_sharing && asset.wealth_sharing.length > 0 && (
-                <div className="shared-with">
-                    👥 Shared with {asset.wealth_sharing.length} member{asset.wealth_sharing.length > 1 ? 's' : ''}
+                <div className="shared-with" style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Users size={16} /> Shared with {asset.wealth_sharing.length} member{asset.wealth_sharing.length > 1 ? 's' : ''}
                 </div>
             )}
         </div>

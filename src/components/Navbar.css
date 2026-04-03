@@ -3,12 +3,10 @@
     bottom: 0;
     left: 0;
     right: 0;
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-top: 1px solid var(--border-color);
+    background: var(--bg-secondary);
     z-index: var(--z-navbar);
-    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.3);
+    /* Removes the border top, Material 3 uses elevation/shadow subtly */
+    box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .navbar-container {
@@ -16,7 +14,7 @@
     justify-content: space-around;
     align-items: center;
     max-width: 100%;
-    padding: 0.5rem 0;
+    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
 }
 
 .navbar-item {
@@ -25,95 +23,88 @@
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-lg);
-    transition: all var(--transition-base);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-fast);
     text-decoration: none;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     position: relative;
-    min-width: 60px;
+    min-width: 64px;
 }
 
 .navbar-item:hover {
-    color: var(--primary-light);
-    background: rgba(99, 102, 241, 0.1);
+    color: var(--text-primary);
+}
+
+/* Material You Pill Indicator for Active State */
+.navbar-item--active .navbar-icon-container {
+    background: var(--primary-container);
+    color: var(--on-primary-container);
 }
 
 .navbar-item--active {
-    color: var(--primary);
-    background: rgba(99, 102, 241, 0.15);
+    color: var(--text-primary);
+    font-weight: 500;
 }
 
-.navbar-item--active::before {
-    content: '';
-    position: absolute;
-    top: -0.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 30px;
-    height: 3px;
-    background: var(--gradient-primary);
-    border-radius: var(--radius-full);
+.navbar-icon-container {
+    padding: 0.25rem 1.25rem;
+    border-radius: 16px; /* Pill shape for icon container */
+    transition: background-color var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .navbar-icon {
     font-size: 1.5rem;
-    transition: transform var(--transition-base);
+    transition: transform var(--transition-fast);
 }
 
-.navbar-item--active .navbar-icon,
-.navbar-item:hover .navbar-icon {
-    transform: scale(1.1);
+.navbar-item--active .navbar-icon {
+    /* Optional slight scaling */
+    transform: scale(1.05);
 }
 
 .navbar-label {
     font-size: 0.75rem;
-    font-weight: 500;
+    font-weight: inherit;
 }
 
-/* Desktop */
+/* Desktop Navigation Rail equivalent */
 @media (min-width: 769px) {
     .navbar {
-        position: static;
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 80px; /* Slim rail */
+        right: auto;
         border-top: none;
-        border-bottom: 1px solid var(--border-color);
-        box-shadow: var(--shadow-sm);
+        border-right: 1px solid var(--border-light);
+        box-shadow: none;
+        padding-top: var(--space-xl);
     }
 
     .navbar-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 var(--space-lg);
+        flex-direction: column;
+        justify-content: flex-start;
+        gap: var(--space-lg);
+        padding: 0;
+        height: 100%;
     }
 
     .navbar-item {
-        flex-direction: row;
-        gap: var(--space-sm);
-        padding: 0.875rem 1.25rem;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.5rem;
     }
 
-    .navbar-item--active::before {
-        top: auto;
-        bottom: -1px;
-        left: 0;
-        transform: none;
-        width: 100%;
-        height: 2px;
+    .navbar-icon-container {
+        padding: 0.5rem 1rem;
     }
 
     .navbar-label {
-        font-size: 0.9375rem;
-    }
-}
-
-/* Tablet */
-@media (max-width: 768px) {
-    .navbar-label {
-        font-size: 0.6875rem;
-    }
-
-    .navbar-item {
-        padding: 0.5rem 0.5rem;
-        min-width: 50px;
+        font-size: 0.75rem; /* Still small labels under icons */
     }
 }

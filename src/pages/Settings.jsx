@@ -8,9 +8,11 @@ import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import Modal from '../components/common/Modal';
-import EmojiPicker from '../components/common/EmojiPicker';
+import IconPicker from '../components/common/IconPicker';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import WealthList from '../components/wealth/WealthList';
+import { Settings as SettingsIcon, LogOut, Check, X, Shield, Info, CreditCard, Mail, Users, Plus, Edit2, Trash2, ShieldAlert, FolderOpen, AlertTriangle, Diamond, RefreshCw, User, ArrowUpCircle, Wallet, Banknote } from 'lucide-react';
+import DynamicIcon from '../components/common/DynamicIcon';
 import './Settings.css';
 
 const Settings = () => {
@@ -218,7 +220,7 @@ const Settings = () => {
         try {
             await addCategory({
                 name: newCategoryName.trim(),
-                icon: newCategoryIcon || '📦',
+                icon: newCategoryIcon || 'Package',
                 type: newCategoryType
             });
             setNewCategoryName('');
@@ -371,16 +373,18 @@ const Settings = () => {
 
     return (
         <div className="settings">
-            <h1 className="settings-title">Settings</h1>
+            <h1 className="settings-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <SettingsIcon size={28} color="var(--primary)" /> Settings
+            </h1>
 
             {/* Profile Section */}
             <Card className="settings-section">
-                <h2 className="settings-section-title">👤 Profile</h2>
+                <h2 className="settings-section-title"><User size={24} style={{ marginRight: '0.5rem' }} /> Profile</h2>
                 <div className="profile-info">
                     <p><strong>Email:</strong> {user?.email}</p>
                 </div>
                 <Button variant="danger" onClick={handleLogout}>
-                    Sign Out
+                    <LogOut size={16} /> Sign Out
                 </Button>
             </Card>
 
@@ -396,7 +400,7 @@ const Settings = () => {
 
                         <div className="onboarding-options">
                             <Card className="onboarding-card" hover>
-                                <div style={{ fontSize: '3rem', marginBottom: 'var(--space-md)' }}>👨‍👩‍👧‍👦</div>
+                                <div style={{ marginBottom: 'var(--space-md)' }}><Users size={48} color="var(--primary)" /></div>
                                 <h3>Create Workspace</h3>
                                 <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
                                     Start tracking your expenses and income
@@ -406,7 +410,7 @@ const Settings = () => {
                                         value={newFamilyName}
                                         onChange={(e) => setNewFamilyName(e.target.value)}
                                         placeholder="Personal workspace"
-                                        icon="📝"
+                                        icon={<FolderOpen size={20} />}
                                     />
                                     <Button type="submit" variant="primary">
                                         Create Workspace
@@ -415,7 +419,7 @@ const Settings = () => {
                             </Card>
 
                             <Card className="onboarding-card" hover>
-                                <div style={{ fontSize: '3rem', marginBottom: 'var(--space-md)' }}>✉️</div>
+                                <div style={{ marginBottom: 'var(--space-md)' }}><Mail size={48} color="var(--primary)" /></div>
                                 <h3>Join Existing Family</h3>
                                 <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-md)' }}>
                                     Ask a family admin to add you by sharing your email:
@@ -437,7 +441,7 @@ const Settings = () => {
             ) : (
                 /* Family Management - Show when user has families */
                 <Card className="settings-section">
-                    <h2 className="settings-section-title">👨‍👩‍👧‍👦 Family</h2>
+                    <h2 className="settings-section-title"><Users size={24} style={{ marginRight: '0.5rem' }} /> Family</h2>
 
                     <div className="settings-subsection">
                         <h3>Current Family</h3>
@@ -448,7 +452,7 @@ const Settings = () => {
                                 if (family) switchFamily(family);
                             }}
                             options={familyOptions}
-                            icon="👨‍👩‍👧‍👦"
+                            icon={<Users size={20} />}
                         />
                     </div>
 
@@ -458,7 +462,7 @@ const Settings = () => {
                             variant="primary"
                             onClick={() => setShowAddFamilyModal(true)}
                         >
-                            ➕ Create Family
+                            <Plus size={16} /> Create Family
                         </Button>
                     </div>
 
@@ -473,7 +477,7 @@ const Settings = () => {
                                 variant="danger"
                                 onClick={handleDeleteFamily}
                             >
-                                🗑️ Delete Family
+                                <Trash2 size={16} /> Delete Family
                             </Button>
                         </div>
                     )}
@@ -497,7 +501,7 @@ const Settings = () => {
                                                     {isCurrentUser && <span className="member-tag">(You)</span>}
                                                 </span>
                                                 <span className={`member-role ${isAdmin ? 'member-role--admin' : ''}`}>
-                                                    {isAdmin ? '👑 Admin' : '👤 Member'}
+                                                    {isAdmin ? <><ShieldAlert size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Admin</> : <><User size={16} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> Member</>}
                                                 </span>
                                             </div>
                                             {!isCurrentUser && isCurrentUserAdmin && (
@@ -508,7 +512,7 @@ const Settings = () => {
                                                             size="sm"
                                                             onClick={() => handlePromoteToAdmin(member.id, member.user_id)}
                                                         >
-                                                            ⬆️ Promote
+                                                            <ArrowUpCircle size={16} /> Promote
                                                         </Button>
                                                     )}
                                                     <Button
@@ -516,7 +520,7 @@ const Settings = () => {
                                                         size="sm"
                                                         onClick={() => handleRemoveMember(member.id, member.user_id)}
                                                     >
-                                                        🗑️ Remove
+                                                        <Trash2 size={16} /> Remove
                                                     </Button>
                                                 </div>
                                             )}
@@ -534,7 +538,7 @@ const Settings = () => {
                                 variant="primary"
                                 onClick={() => setShowAddMemberModal(true)}
                             >
-                                ➕ Add Member
+                                <Plus size={16} /> Add Member
                             </Button>
                         </div>
                     )}
@@ -544,14 +548,14 @@ const Settings = () => {
             {/* Categories Management - Only show when family exists */}
             {currentFamily && (
                 <Card className="settings-section">
-                    <h2 className="settings-section-title">📂 Categories</h2>
+                    <h2 className="settings-section-title"><FolderOpen size={24} style={{ marginRight: '0.5rem' }} /> Categories</h2>
 
                     <div className="settings-subsection">
                         <h3>Expense Categories</h3>
                         <div className="items-list">
                             {expenseCategories.map(cat => (
                                 <div key={cat.id} className="item-row">
-                                    <span className="item-icon">{cat.icon}</span>
+                                    <span className="item-icon"><DynamicIcon name={cat.icon} size={20} /></span>
                                     <span className="item-name">{cat.name}</span>
                                     <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
                                         <Button
@@ -559,14 +563,14 @@ const Settings = () => {
                                             size="sm"
                                             onClick={() => handleEditCategory(cat)}
                                         >
-                                            ✏️
+                                            <Edit2 size={16} />
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleDeleteCategory(cat.id)}
                                         >
-                                            🗑️
+                                            <Trash2 size={16} />
                                         </Button>
                                     </div>
                                 </div>
@@ -579,7 +583,7 @@ const Settings = () => {
                         <div className="items-list">
                             {incomeCategories.map(cat => (
                                 <div key={cat.id} className="item-row">
-                                    <span className="item-icon">{cat.icon}</span>
+                                    <span className="item-icon"><DynamicIcon name={cat.icon} size={20} /></span>
                                     <span className="item-name">{cat.name}</span>
                                     <div style={{ display: 'flex', gap: 'var(--space-xs)' }}>
                                         <Button
@@ -587,14 +591,14 @@ const Settings = () => {
                                             size="sm"
                                             onClick={() => handleEditCategory(cat)}
                                         >
-                                            ✏️
+                                            <Edit2 size={16} />
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleDeleteCategory(cat.id)}
                                         >
-                                            🗑️
+                                            <Trash2 size={16} />
                                         </Button>
                                     </div>
                                 </div>
@@ -603,12 +607,11 @@ const Settings = () => {
                     </div>
 
                     <div className="settings-subsection">
-                        <h3>Add Category</h3>
                         <Button
                             variant="primary"
                             onClick={() => setShowAddCategoryModal(true)}
                         >
-                            ➕ Add Category
+                            <Plus size={16} /> Add Category
                         </Button>
                     </div>
                 </Card>
@@ -617,7 +620,7 @@ const Settings = () => {
             {/* Payment Methods - Only show when family exists */}
             {currentFamily && (
                 <Card className="settings-section">
-                    <h2 className="settings-section-title">💳 Payment Methods</h2>
+                    <h2 className="settings-section-title"><CreditCard size={24} style={{ marginRight: '0.5rem' }} /> Payment Methods</h2>
 
                     <div className="settings-subsection">
                         <h3>Your Payment Methods</h3>
@@ -632,14 +635,14 @@ const Settings = () => {
                                             size="sm"
                                             onClick={() => handleEditPayment(pm)}
                                         >
-                                            ✏️
+                                            <Edit2 size={16} />
                                         </Button>
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleDeletePaymentMethod(pm.id)}
                                         >
-                                            🗑️
+                                            <Trash2 size={16} />
                                         </Button>
                                     </div>
                                 </div>
@@ -653,7 +656,7 @@ const Settings = () => {
                             variant="primary"
                             onClick={() => setShowAddPaymentModal(true)}
                         >
-                            ➕ Add Payment Method
+                            <Plus size={16} /> Add Payment Method
                         </Button>
                     </div>
                 </Card>
@@ -662,7 +665,7 @@ const Settings = () => {
             {/* Wealth Management - Only show when family exists */}
             {currentFamily && (
                 <Card className="settings-section">
-                    <h2 className="settings-section-title">💎 Wealth Management</h2>
+                    <h2 className="settings-section-title"><Diamond size={24} style={{ marginRight: '0.5rem' }} /> Wealth Management</h2>
                     <WealthList />
                 </Card>
             )}
@@ -678,7 +681,7 @@ const Settings = () => {
                         value={newFamilyName}
                         onChange={(e) => setNewFamilyName(e.target.value)}
                         placeholder="Family name..."
-                        icon="📝"
+                        icon={<FolderOpen size={20} />}
                         required
                     />
                     <Button type="submit" variant="primary">
@@ -698,14 +701,15 @@ const Settings = () => {
                         value={newMemberEmail}
                         onChange={(e) => setNewMemberEmail(e.target.value)}
                         placeholder="Member's email address..."
-                        icon="✉️"
+                        icon={<Mail size={20} />}
                         required
                     />
                     <Button type="submit" variant="primary">
                         Add Member
                     </Button>
-                    <p className="settings-hint">
-                        💡 The user must have signed up before you can add them to your family.
+                    <p className="settings-hint" style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                        <Info size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        The user must have signed up before you can add them to your family.
                     </p>
                 </form>
             </Modal>
@@ -716,7 +720,7 @@ const Settings = () => {
                 title="Add Category"
             >
                 <form onSubmit={handleAddCategory} className="settings-form">
-                    <EmojiPicker
+                    <IconPicker
                         label="Category Icon"
                         value={newCategoryIcon}
                         onChange={setNewCategoryIcon}
@@ -725,7 +729,7 @@ const Settings = () => {
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         placeholder="Category name..."
-                        icon="📝"
+                        icon={<FolderOpen size={20} />}
                         required
                     />
                     <Select
@@ -735,7 +739,7 @@ const Settings = () => {
                             { value: 'expense', label: 'Expense' },
                             { value: 'income', label: 'Income' }
                         ]}
-                        icon="📊"
+                        icon={<Banknote size={20} />}
                     />
                     <Button type="submit" variant="primary">
                         Add Category
@@ -753,7 +757,7 @@ const Settings = () => {
                         value={newPaymentName}
                         onChange={(e) => setNewPaymentName(e.target.value)}
                         placeholder="Payment method name..."
-                        icon="💳"
+                        icon={<CreditCard size={20} />}
                         required
                     />
                     <Select
@@ -765,7 +769,7 @@ const Settings = () => {
                             { value: 'cash', label: 'Cash' },
                             { value: 'other', label: 'Other' }
                         ]}
-                        icon="📊"
+                        icon={<Wallet size={20} />}
                     />
                     <Button type="submit" variant="primary">
                         Add Payment Method
@@ -784,7 +788,7 @@ const Settings = () => {
                 title="Edit Category"
             >
                 <form onSubmit={handleUpdateCategory} className="settings-form">
-                    <EmojiPicker
+                    <IconPicker
                         label="Category Icon"
                         value={newCategoryIcon}
                         onChange={setNewCategoryIcon}
@@ -793,7 +797,7 @@ const Settings = () => {
                         value={newCategoryName}
                         onChange={(e) => setNewCategoryName(e.target.value)}
                         placeholder="Category name..."
-                        icon="📝"
+                        icon={<FolderOpen size={20} />}
                         required
                     />
                     <Select

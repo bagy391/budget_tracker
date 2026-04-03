@@ -4,6 +4,7 @@ import Button from '../common/Button';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import { format } from 'date-fns';
+import { FileText, DollarSign, FolderOpen, CreditCard, Calendar, FileType, AlertTriangle, Trash2 } from 'lucide-react';
 import './Forms.css';
 
 const ExpenseForm = ({ expense, onClose }) => {
@@ -82,7 +83,7 @@ const ExpenseForm = ({ expense, onClose }) => {
     const categoryOptions = expenseCategories.map(c => ({
         value: c.id,
         label: c.name,
-        icon: c.icon
+        icon: undefined // Handled by standard drop down or custom if we want later, we don't need dynamic icons inside the standard select
     }));
 
     const paymentOptions = paymentMethods.map(pm => ({
@@ -93,8 +94,8 @@ const ExpenseForm = ({ expense, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="form">
             {error && (
-                <div className="form-error">
-                    <span>⚠️</span>
+                <div className="form-error" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <AlertTriangle size={16} />
                     {error}
                 </div>
             )}
@@ -104,7 +105,7 @@ const ExpenseForm = ({ expense, onClose }) => {
                 value={formData.title}
                 onChange={(e) => handleChange('title', e.target.value)}
                 placeholder="e.g., Groceries"
-                icon="📝"
+                icon={<FileText size={18} />}
                 required
             />
 
@@ -115,7 +116,7 @@ const ExpenseForm = ({ expense, onClose }) => {
                 value={formData.amount}
                 onChange={(e) => handleChange('amount', e.target.value)}
                 placeholder="0.00"
-                icon="💵"
+                icon={<DollarSign size={18} />}
                 required
             />
 
@@ -125,7 +126,7 @@ const ExpenseForm = ({ expense, onClose }) => {
                 onChange={(value) => handleChange('category_id', value)}
                 options={categoryOptions}
                 placeholder="Select category"
-                icon="📂"
+                icon={<FolderOpen size={18} />}
                 required
             />
 
@@ -135,7 +136,7 @@ const ExpenseForm = ({ expense, onClose }) => {
                 onChange={(value) => handleChange('payment_method_id', value)}
                 options={paymentOptions}
                 placeholder="Select payment method"
-                icon="💳"
+                icon={<CreditCard size={18} />}
                 required
             />
 
@@ -144,7 +145,7 @@ const ExpenseForm = ({ expense, onClose }) => {
                 type="datetime-local"
                 value={formData.transaction_date}
                 onChange={(e) => handleChange('transaction_date', e.target.value)}
-                icon="📅"
+                icon={<Calendar size={18} />}
             />
 
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
@@ -165,7 +166,7 @@ const ExpenseForm = ({ expense, onClose }) => {
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
                 placeholder="Optional notes..."
-                icon="📄"
+                icon={<FileType size={18} />}
             />
 
             <div className="form-actions">
@@ -186,7 +187,9 @@ const ExpenseForm = ({ expense, onClose }) => {
                         onClick={handleDelete}
                         disabled={loading}
                     >
-                        Delete Expense
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Trash2 size={16} /> Delete Expense
+                        </span>
                     </Button>
                 )}
 

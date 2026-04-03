@@ -8,6 +8,8 @@ import Modal from '../components/common/Modal';
 import ExpenseForm from '../components/forms/ExpenseForm';
 import IncomeForm from '../components/forms/IncomeForm';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { Users, Banknote, Plus, TrendingUp, TrendingDown, Wallet, Inbox, Package, CircleDollarSign, Activity } from 'lucide-react';
+import DynamicIcon from '../components/common/DynamicIcon';
 import './Overview.css';
 
 const Overview = () => {
@@ -20,10 +22,12 @@ const Overview = () => {
     if (!currentFamily) {
         return (
             <div className="overview">
-                <h1 className="overview-title">Overview</h1>
+                <h1 className="overview-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Activity size={28} color="var(--primary)" /> Overview
+                </h1>
                 <Card>
                     <div className="empty-state">
-                        <p className="empty-icon">👨‍👩‍👧‍👦</p>
+                        <Users size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
                         <p className="empty-text">No Family Selected</p>
                         <p style={{ color: 'var(--text-secondary)', marginTop: 'var(--space-md)' }}>
                             Create or select a family from Settings to start tracking your budget
@@ -93,31 +97,35 @@ const Overview = () => {
         <div className="overview">
             <div className="overview-header">
                 <div>
-                    <h1 className="overview-title">Overview</h1>
+                    <h1 className="overview-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Activity size={28} color="var(--primary)" /> Overview
+                    </h1>
                     <p className="overview-subtitle">{currentFamily.name}</p>
                 </div>
             </div>
 
-            <div className="overview-actions">
-                <Button
-                    variant="primary"
-                    icon="➕"
-                    onClick={() => setShowExpenseModal(true)}
+            <div className="fab-container" style={{ position: 'fixed', bottom: 'calc(90px + var(--space-lg))', right: 'var(--space-lg)', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-end', zIndex: 90 }}>
+                <button 
+                  className="fab fab-secondary"
+                  style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--surface-variant)', color: 'var(--on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)' }}
+                  onClick={() => setShowIncomeModal(true)}
+                  title="Add Income"
                 >
-                    Add Expense
-                </Button>
-                <Button
-                    variant="outline"
-                    icon="💵"
-                    onClick={() => setShowIncomeModal(true)}
+                    <Banknote size={24} />
+                </button>
+                <button 
+                  className="fab"
+                  style={{ position: 'static', width: '64px', height: '64px', borderRadius: '16px', background: 'var(--primary-container)', color: 'var(--on-primary-container)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-lg)' }}
+                  onClick={() => setShowExpenseModal(true)}
+                  title="Add Expense"
                 >
-                    Add Income
-                </Button>
+                    <Plus size={32} />
+                </button>
             </div>
 
             <div className="overview-stats">
                 <Card className="stat-card stat-card--income">
-                    <div className="stat-icon">📈</div>
+                    <div className="stat-icon" style={{ display: 'flex', alignItems: 'center' }}><TrendingUp size={28} color="var(--success)" /></div>
                     <div className="stat-content">
                         <p className="stat-label">Total Income</p>
                         <h3 className="stat-value">{formatCurrency(totalIncome)}</h3>
@@ -125,7 +133,7 @@ const Overview = () => {
                 </Card>
 
                 <Card className="stat-card stat-card--expense">
-                    <div className="stat-icon">📉</div>
+                    <div className="stat-icon" style={{ display: 'flex', alignItems: 'center' }}><TrendingDown size={28} color="var(--error)" /></div>
                     <div className="stat-content">
                         <p className="stat-label">Total Expenses</p>
                         <h3 className="stat-value">{formatCurrency(totalExpenses)}</h3>
@@ -134,7 +142,7 @@ const Overview = () => {
 
                 {currentBudget && (
                     <Card className="stat-card stat-card--budget">
-                        <div className="stat-icon">💰</div>
+                        <div className="stat-icon" style={{ display: 'flex', alignItems: 'center' }}><Wallet size={28} color="var(--primary)" /></div>
                         <div className="stat-content">
                             <p className="stat-label">Budget Remaining</p>
                             <h3 className="stat-value">{formatCurrency(budgetStats.remaining)}</h3>
@@ -150,7 +158,7 @@ const Overview = () => {
                 {recentExpenses.length === 0 && recentIncomes.length === 0 ? (
                     <Card>
                         <div className="empty-state">
-                            <p className="empty-icon">📭</p>
+                            <Inbox size={48} color="var(--text-muted)" style={{ marginBottom: '1rem' }} />
                             <p className="empty-text">No transactions yet</p>
                             <p className="empty-subtext">Add your first expense or income to get started</p>
                         </div>
@@ -164,7 +172,9 @@ const Overview = () => {
                                 onClick={() => handleEditExpense(expense)}
                                 hover
                             >
-                                <div className="transaction-icon">{expense.categories?.icon || '📦'}</div>
+                                <div className="transaction-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <DynamicIcon name={expense.categories?.icon || 'Package'} size={24} />
+                                </div>
                                 <div className="transaction-details">
                                     <h4 className="transaction-title">{expense.title}</h4>
                                     <p className="transaction-meta">
@@ -184,7 +194,9 @@ const Overview = () => {
                                 onClick={() => handleEditIncome(income)}
                                 hover
                             >
-                                <div className="transaction-icon">💰</div>
+                                <div className="transaction-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <CircleDollarSign size={24} color="var(--success)" />
+                                </div>
                                 <div className="transaction-details">
                                     <h4 className="transaction-title">{income.source}</h4>
                                     <p className="transaction-meta">

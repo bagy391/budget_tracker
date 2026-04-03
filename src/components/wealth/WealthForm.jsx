@@ -3,15 +3,16 @@ import { useBudget } from '../../contexts/BudgetContext';
 import Modal from '../common/Modal';
 import Button from '../common/Button';
 import Input from '../common/Input';
+import { TrendingUp, BarChart2, Landmark, Building2, Wallet, Award } from 'lucide-react';
 import './WealthForm.css';
 
 const ASSET_TYPES = [
-    { value: 'mutual_fund', label: 'Mutual Fund', icon: '📈' },
-    { value: 'stock', label: 'Stock', icon: '📊' },
-    { value: 'epf', label: 'EPF', icon: '🏦' },
-    { value: 'nps', label: 'NPS', icon: '🏛️' },
-    { value: 'bank', label: 'Bank Account', icon: '💰' },
-    { value: 'fd', label: 'Fixed Deposit', icon: '🏅' }
+    { value: 'mutual_fund', label: 'Mutual Fund', icon: <TrendingUp size={16} /> },
+    { value: 'stock', label: 'Stock', icon: <BarChart2 size={16} /> },
+    { value: 'epf', label: 'EPF', icon: <Landmark size={16} /> },
+    { value: 'nps', label: 'NPS', icon: <Building2 size={16} /> },
+    { value: 'bank', label: 'Bank Account', icon: <Wallet size={16} /> },
+    { value: 'fd', label: 'Fixed Deposit', icon: <Award size={16} /> }
 ];
 
 const WealthForm = ({ isOpen, onClose, editAsset = null }) => {

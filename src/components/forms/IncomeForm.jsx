@@ -3,6 +3,7 @@ import { useBudget } from '../../contexts/BudgetContext';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import { format } from 'date-fns';
+import { DollarSign, Calendar, AlertTriangle, Briefcase, Trash2 } from 'lucide-react';
 import './Forms.css';
 
 const IncomeForm = ({ income, onClose }) => {
@@ -68,8 +69,8 @@ const IncomeForm = ({ income, onClose }) => {
     return (
         <form onSubmit={handleSubmit} className="form">
             {error && (
-                <div className="form-error">
-                    <span>⚠️</span>
+                <div className="form-error" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <AlertTriangle size={16} />
                     {error}
                 </div>
             )}
@@ -79,7 +80,7 @@ const IncomeForm = ({ income, onClose }) => {
                 value={formData.source}
                 onChange={(e) => handleChange('source', e.target.value)}
                 placeholder="e.g., Salary, Freelance"
-                icon="💰"
+                icon={<Briefcase size={18} />}
                 required
             />
 
@@ -90,7 +91,7 @@ const IncomeForm = ({ income, onClose }) => {
                 value={formData.amount}
                 onChange={(e) => handleChange('amount', e.target.value)}
                 placeholder="0.00"
-                icon="💵"
+                icon={<DollarSign size={18} />}
                 required
             />
 
@@ -99,7 +100,7 @@ const IncomeForm = ({ income, onClose }) => {
                 type="date"
                 value={formData.date}
                 onChange={(e) => handleChange('date', e.target.value)}
-                icon="📅"
+                icon={<Calendar size={18} />}
             />
 
             <div className="form-actions">
@@ -120,7 +121,9 @@ const IncomeForm = ({ income, onClose }) => {
                         onClick={handleDelete}
                         disabled={loading}
                     >
-                        Delete Income
+                        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                            <Trash2 size={16} /> Delete Income
+                        </span>
                     </Button>
                 )}
 
