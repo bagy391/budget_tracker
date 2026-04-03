@@ -17,8 +17,10 @@ export const calculateBudgetStats = (budget, expenses) => {
 
     const budgetAmount = parseFloat(budget.amount) || 0;
 
-    // Filter expenses within budget period
+    // Filter expenses within budget period and not excluded
     const budgetExpenses = expenses.filter(expense => {
+        if (expense.exclude_from_budget) return false;
+        
         const expenseDate = parseISO(expense.transaction_date);
         return isWithinInterval(expenseDate, {
             start: parseISO(budget.start_date),

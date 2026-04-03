@@ -155,7 +155,7 @@ const Dashboard = () => {
 
             const monthExpenses = expenses.filter(e => {
                 const date = parseISO(e.transaction_date);
-                return date >= monthStart && date <= monthEnd;
+                return date >= monthStart && date <= monthEnd && !e.exclude_from_budget;
             });
 
             const spent = monthExpenses.reduce((sum, e) => sum + parseFloat(e.amount), 0);

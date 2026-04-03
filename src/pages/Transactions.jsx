@@ -5,18 +5,26 @@ import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import Card from '../components/common/Card';
 import Select from '../components/common/Select';
 import Modal from '../components/common/Modal';
+import Button from '../components/common/Button';
+import Input from '../components/common/Input';
 import ExpenseForm from '../components/forms/ExpenseForm';
 import IncomeForm from '../components/forms/IncomeForm';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import './Transactions.css';
 
 const Transactions = () => {
-    const { expenses, incomes, loading, currentFamily } = useBudget();
+    const { expenses, incomes, loading, currentFamily, updateExpense, updateIncome, refreshData } = useBudget();
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
     const [showExpenseModal, setShowExpenseModal] = useState(false);
     const [showIncomeModal, setShowIncomeModal] = useState(false);
     const [editingExpense, setEditingExpense] = useState(null);
     const [editingIncome, setEditingIncome] = useState(null);
+
+    // Multi-select state
+    const [selectedIds, setSelectedIds] = useState(new Set());
+    const [showBulkDateModal, setShowBulkDateModal] = useState(false);
+    const [bulkDate, setBulkDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+    const [bulkLoading, setBulkLoading] = useState(false);
 
     // Generate month options (last 12 months)
     const monthOptions = useMemo(() => {
@@ -80,6 +88,51 @@ const Transactions = () => {
         setEditingIncome(null);
     };
 
+    // Bulk selection handlers
+    const toggleSelection = (e, id, type) => {
+        e.stopPropagation();
+        const newSelected = new Set(selectedIds);
+        const key = `${type}-${id}`;
+        if (newSelected.has(key)) {
+            newSelected.delete(key);
+        } else {
+            newSelected.add(key);
+        }
+        setSelectedIds(newSelected);
+    };
+
+
+
+    const handleBulkDateSave = async () => {
+        setBulkLoading(true);
+        try {
+            const updates = Array.from(selectedIds).map(async (key) => {
+                const type = key.startsWith('expense-') ? 'expense' : 'income';
+                const id = key.substring(type.length + 1); // remove 'expense-' or 'income-'
+                
+                if (type === 'expense') {
+                    // Update expense date with approximated time to avoid zone resets
+                    const newDate = new Date(bulkDate + 'T12:00:00').toISOString();
+                    await updateExpense(id, { transaction_date: newDate });
+                } else {
+                    // Update income date
+                    await updateIncome(id, { date: bulkDate });
+                }
+            });
+            await Promise.all(updates);
+            
+            refreshData();
+
+            setShowBulkDateModal(false);
+            setSelectedIds(new Set());
+        } catch (err) {
+            console.error('Failed to bulk update:', err);
+            alert('Failed to update transactions');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
     if (loading) {
         return <LoadingSpinner fullScreen />;
     }
@@ -116,7 +169,10 @@ const Transactions = () => {
                 <h1 className="transactions-title">Transactions</h1>
                 <Select
                     value={selectedMonth}
-                    onChange={setSelectedMonth}
+                    onChange={(val) => {
+                        setSelectedMonth(val);
+                        setSelectedIds(new Set()); // Reset selection on month change
+                    }}
                     options={monthOptions}
                     icon="📅"
                 />
@@ -140,6 +196,21 @@ const Transactions = () => {
             </div>
 
             <div className="transactions-list">
+                {filteredTransactions.length > 0 && (
+                    <div className="transactions-bulk-actions">
+                        <div className="bulk-selection">
+                            <span className="bulk-selection-label">
+                                {selectedIds.size} Selected
+                            </span>
+                        </div>
+                        {selectedIds.size > 0 && (
+                            <Button variant="primary" size="sm" onClick={() => setShowBulkDateModal(true)}>
+                                Change Date
+                            </Button>
+                        )}
+                    </div>
+                )}
+
                 {filteredTransactions.length === 0 ? (
                     <Card>
                         <div className="empty-state">
@@ -150,13 +221,24 @@ const Transactions = () => {
                 ) : (
                     filteredTransactions.map(transaction => {
                         const isExpense = transaction.type === 'expense';
+                        const key = `${transaction.type}-${transaction.id}`;
+                        const isSelected = selectedIds.has(key);
+                        
                         return (
                             <Card
-                                key={`${transaction.type}-${transaction.id}`}
-                                className="transaction-card"
+                                key={key}
+                                className={`transaction-card ${isSelected ? 'transaction-card--selected' : ''}`}
                                 onClick={() => isExpense ? handleEditExpense(transaction) : handleEditIncome(transaction)}
                                 hover
                             >
+                                <div className="transaction-checkbox" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={isSelected}
+                                        onChange={(e) => toggleSelection(e, transaction.id, transaction.type)}
+                                        className="transaction-checkbox-input"
+                                    />
+                                </div>
                                 <div className="transaction-icon">
                                     {isExpense ? (transaction.categories?.icon || '📦') : '💰'}
                                 </div>
@@ -200,6 +282,30 @@ const Transactions = () => {
                     income={editingIncome}
                     onClose={handleCloseIncomeModal}
                 />
+            </Modal>
+
+            <Modal
+                isOpen={showBulkDateModal}
+                onClose={() => setShowBulkDateModal(false)}
+                title="Change Date"
+            >
+                <div style={{ padding: '1rem' }}>
+                    <Input
+                        label="New Date for Selected Transactions"
+                        type="date"
+                        value={bulkDate}
+                        onChange={(e) => setBulkDate(e.target.value)}
+                        icon="📅"
+                    />
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'flex-end' }}>
+                        <Button variant="ghost" onClick={() => setShowBulkDateModal(false)}>
+                            Cancel
+                        </Button>
+                        <Button variant="primary" loading={bulkLoading} onClick={handleBulkDateSave}>
+                            Save Changes
+                        </Button>
+                    </div>
+                </div>
             </Modal>
         </div>
     );

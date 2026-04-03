@@ -15,6 +15,7 @@ const ExpenseForm = ({ expense, onClose }) => {
         description: expense?.description || '',
         category_id: expense?.category_id || '',
         payment_method_id: expense?.payment_method_id || '',
+        exclude_from_budget: expense?.exclude_from_budget || false,
         transaction_date: expense?.transaction_date
             ? format(new Date(expense.transaction_date), "yyyy-MM-dd'T'HH:mm")
             : format(new Date(), "yyyy-MM-dd'T'HH:mm")
@@ -145,6 +146,19 @@ const ExpenseForm = ({ expense, onClose }) => {
                 onChange={(e) => handleChange('transaction_date', e.target.value)}
                 icon="📅"
             />
+
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0' }}>
+                <input
+                    type="checkbox"
+                    id="exclude_from_budget"
+                    checked={formData.exclude_from_budget}
+                    onChange={(e) => handleChange('exclude_from_budget', e.target.checked)}
+                    style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+                <label htmlFor="exclude_from_budget" style={{ cursor: 'pointer', color: 'var(--text-primary)', fontSize: '0.95rem' }}>
+                    Exclude from Budget Calculations
+                </label>
+            </div>
 
             <Input
                 label="Description"
