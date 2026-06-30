@@ -49,7 +49,8 @@ const ExpenseForm = ({ expense, onClose }) => {
 
             const data = {
                 ...formData,
-                amount: parseFloat(formData.amount)
+                amount: parseFloat(formData.amount),
+                transaction_date: new Date(formData.transaction_date).toISOString()
             };
 
             if (expense) {

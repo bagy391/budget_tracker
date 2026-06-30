@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency, calculateBudgetStats } from '../utils/calculations';
-import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, startOfDay, endOfDay } from 'date-fns';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -19,7 +19,7 @@ const Budget = () => {
     const currentMonth = new Date();
     const currentBudget = budgets.find(budget => {
         const budgetStart = parseISO(budget.start_date);
-        const budgetEnd = parseISO(budget.end_date);
+        const budgetEnd = endOfDay(parseISO(budget.end_date));
         return currentMonth >= budgetStart && currentMonth <= budgetEnd;
     });
 

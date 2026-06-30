@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency, formatDate, calculateBudgetStats } from '../utils/calculations';
-import { startOfMonth, endOfMonth } from 'date-fns';
+import { startOfMonth, endOfMonth, parseISO, endOfDay } from 'date-fns';
 import Button from '../components/common/Button';
 import Card from '../components/common/Card';
 import Modal from '../components/common/Modal';
@@ -45,8 +45,8 @@ const Overview = () => {
     // Get current month budget
     const currentMonth = new Date();
     const currentBudget = budgets.find(budget => {
-        const budgetStart = new Date(budget.start_date);
-        const budgetEnd = new Date(budget.end_date);
+        const budgetStart = parseISO(budget.start_date);
+        const budgetEnd = endOfDay(parseISO(budget.end_date));
         return currentMonth >= budgetStart && currentMonth <= budgetEnd;
     });
 
@@ -61,12 +61,12 @@ const Overview = () => {
     const monthEnd = endOfMonth(currentMonth);
 
     const monthlyExpenses = expenses.filter(e => {
-        const date = new Date(e.transaction_date);
+        const date = parseISO(e.transaction_date);
         return date >= monthStart && date <= monthEnd;
     });
 
     const monthlyIncomes = incomes.filter(i => {
-        const date = new Date(i.date);
+        const date = parseISO(i.date);
         return date >= monthStart && date <= monthEnd;
     });
 

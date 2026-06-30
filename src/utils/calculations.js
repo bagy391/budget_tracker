@@ -1,4 +1,4 @@
-import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, isWithinInterval, startOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, differenceInDays, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 /**
  * Calculate budget statistics
@@ -24,7 +24,7 @@ export const calculateBudgetStats = (budget, expenses) => {
         const expenseDate = parseISO(expense.transaction_date);
         return isWithinInterval(expenseDate, {
             start: parseISO(budget.start_date),
-            end: parseISO(budget.end_date)
+            end: endOfDay(parseISO(budget.end_date))
         });
     });
 

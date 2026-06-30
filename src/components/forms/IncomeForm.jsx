@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useBudget } from '../../contexts/BudgetContext';
 import Button from '../common/Button';
 import Input from '../common/Input';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { DollarSign, Calendar, AlertTriangle, Briefcase, Trash2 } from 'lucide-react';
 import './Forms.css';
 
@@ -13,7 +13,7 @@ const IncomeForm = ({ income, onClose }) => {
         source: income?.source || '',
         amount: income?.amount || '',
         date: income?.date
-            ? format(new Date(income.date), 'yyyy-MM-dd')
+            ? format(parseISO(income.date), 'yyyy-MM-dd')
             : format(new Date(), 'yyyy-MM-dd')
     });
 
