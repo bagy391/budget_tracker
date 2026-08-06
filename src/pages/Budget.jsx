@@ -91,9 +91,9 @@ const Budget = () => {
 
     // Determine budget health color
     const getHealthColor = () => {
-        if (stats.percentage < 50) return 'var(--success)';
-        if (stats.percentage < 80) return 'var(--warning)';
-        return 'var(--danger)';
+        if (stats.percentage < 50) return 'var(--success)';       // #81C784
+        if (stats.percentage < 80) return '#f59e0b';               // amber warning
+        return 'var(--error)';                                      // #F2B8B5
     };
 
     return (
@@ -112,13 +112,15 @@ const Budget = () => {
 
                         <div className="budget-progress">
                             <div className="budget-progress-bar">
-                                <div
-                                    className="budget-progress-fill"
-                                    style={{
-                                        width: `${stats.percentage}%`,
-                                        background: getHealthColor()
-                                    }}
-                                />
+                                <div className="budget-progress-track">
+                                    <div
+                                        className="budget-progress-fill"
+                                        style={{
+                                            width: `${Math.min(100, stats.percentage)}%`,
+                                            background: getHealthColor()
+                                        }}
+                                    />
+                                </div>
                                 <div
                                     className="budget-progress-marker"
                                     style={{ left: `${currentDayPercentage}%` }}

@@ -40,16 +40,22 @@
 .budget-progress-bar {
     position: relative;
     height: 40px;
+    margin-bottom: var(--space-md);
+}
+
+.budget-progress-track {
+    position: absolute;
+    inset: 0;
     background: var(--bg-tertiary);
     border-radius: var(--radius-full);
-    overflow: visible;
-    margin-bottom: var(--space-md);
+    overflow: hidden;
 }
 
 .budget-progress-fill {
     height: 100%;
     border-radius: var(--radius-full);
     transition: width var(--transition-slow), background var(--transition-base);
+    min-width: 0;
 }
 
 .budget-progress-marker {

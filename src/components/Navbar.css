@@ -5,8 +5,9 @@
     right: 0;
     background: var(--bg-secondary);
     z-index: var(--z-navbar);
-    /* Removes the border top, Material 3 uses elevation/shadow subtly */
     box-shadow: 0 -1px 3px 0 rgba(0, 0, 0, 0.1);
+    /* Safe area for notch/home bar on iOS */
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .navbar-container {
@@ -14,7 +15,7 @@
     justify-content: space-around;
     align-items: center;
     max-width: 100%;
-    padding: 0.5rem 0.5rem 0.5rem 0.5rem;
+    padding: 0.4rem 0.25rem;
 }
 
 .navbar-item {
@@ -22,14 +23,15 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.5rem;
+    gap: 0.15rem;
+    padding: 0.2rem 0.25rem;
     border-radius: var(--radius-full);
     transition: all var(--transition-fast);
     text-decoration: none;
     color: var(--text-secondary);
     position: relative;
-    min-width: 64px;
+    flex: 1;          /* each tab takes equal share of space */
+    min-width: 0;     /* allow shrinking below content size */
 }
 
 .navbar-item:hover {
@@ -48,8 +50,8 @@
 }
 
 .navbar-icon-container {
-    padding: 0.25rem 1.25rem;
-    border-radius: 16px; /* Pill shape for icon container */
+    padding: 0.25rem 0.75rem;   /* narrower pill so 6 fit */
+    border-radius: 16px;
     transition: background-color var(--transition-fast);
     display: flex;
     align-items: center;
@@ -62,28 +64,33 @@
 }
 
 .navbar-item--active .navbar-icon {
-    /* Optional slight scaling */
     transform: scale(1.05);
 }
 
 .navbar-label {
-    font-size: 0.75rem;
+    font-size: 0.65rem;   /* slightly smaller to fit */
     font-weight: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    text-align: center;
 }
 
-/* Desktop Navigation Rail equivalent */
+/* Desktop Navigation Rail */
 @media (min-width: 769px) {
     .navbar {
         position: fixed;
         left: 0;
         top: 0;
         bottom: 0;
-        width: 80px; /* Slim rail */
+        width: 80px;
         right: auto;
         border-top: none;
         border-right: 1px solid var(--border-light);
         box-shadow: none;
         padding-top: var(--space-xl);
+        padding-bottom: 0;
     }
 
     .navbar-container {
@@ -95,9 +102,11 @@
     }
 
     .navbar-item {
+        flex: 0;
         flex-direction: column;
         gap: 0.25rem;
         padding: 0.5rem;
+        min-width: 64px;
     }
 
     .navbar-icon-container {
@@ -105,6 +114,6 @@
     }
 
     .navbar-label {
-        font-size: 0.75rem; /* Still small labels under icons */
+        font-size: 0.75rem;
     }
 }

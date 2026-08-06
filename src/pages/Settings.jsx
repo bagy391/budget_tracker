@@ -10,7 +10,6 @@ import Select from '../components/common/Select';
 import Modal from '../components/common/Modal';
 import IconPicker from '../components/common/IconPicker';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import WealthList from '../components/wealth/WealthList';
 import { Settings as SettingsIcon, LogOut, Check, X, Shield, Info, CreditCard, Mail, Users, Plus, Edit2, Trash2, ShieldAlert, FolderOpen, AlertTriangle, Diamond, RefreshCw, User, ArrowUpCircle, Wallet, Banknote } from 'lucide-react';
 import DynamicIcon from '../components/common/DynamicIcon';
 import './Settings.css';
@@ -662,13 +661,6 @@ const Settings = () => {
                 </Card>
             )}
 
-            {/* Wealth Management - Only show when family exists */}
-            {currentFamily && (
-                <Card className="settings-section">
-                    <h2 className="settings-section-title"><Diamond size={24} style={{ marginRight: '0.5rem' }} /> Wealth Management</h2>
-                    <WealthList />
-                </Card>
-            )}
 
             {/* Modals */}
             <Modal

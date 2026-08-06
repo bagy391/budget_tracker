@@ -12,6 +12,7 @@ import Transactions from './pages/Transactions';
 import Dashboard from './pages/Dashboard';
 import Budget from './pages/Budget';
 import Settings from './pages/Settings';
+import Wealth from './pages/Wealth';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const AppRoutes = () => {
@@ -56,6 +57,7 @@ const AppRoutes = () => {
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="budgets" element={<Budget />} />
+                <Route path="wealth" element={<Wealth />} />
                 <Route path="settings" element={<Settings />} />
             </Route>
 
