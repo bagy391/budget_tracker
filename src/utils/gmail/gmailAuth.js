@@ -2,11 +2,25 @@
  * Gmail OAuth Authentication
  * Uses the Google Identity Services (GIS) library loaded via script tag.
  * Stores the access token + expiry in localStorage (read-only gmail scope).
+ * Includes detailed diagnostic logging for debugging deployment environments.
  */
 
 const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 const TOKEN_KEY   = 'gmail_access_token';
 const EXPIRY_KEY  = 'gmail_token_expiry';
+
+// Diagnostic logger array
+if (typeof window !== 'undefined') {
+    window._gmailAuthLogs = window._gmailAuthLogs || [];
+}
+
+function logDiag(msg, data = null) {
+    const entry = { time: new Date().toLocaleTimeString(), msg, data };
+    console.log(`[GmailAuth Diag] ${msg}`, data || '');
+    if (typeof window !== 'undefined') {
+        window._gmailAuthLogs = [entry, ...(window._gmailAuthLogs || []).slice(0, 49)];
+    }
+}
 
 // ── Public API ──────────────────────────────────────────────────────────────
 
@@ -18,8 +32,16 @@ const EXPIRY_KEY  = 'gmail_token_expiry';
  */
 export function connectGmail(onSuccess, onError) {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    logDiag('Initiating connectGmail', {
+        clientIdConfigured: Boolean(clientId),
+        clientIdPrefix: clientId ? clientId.slice(0, 12) + '...' : 'MISSING',
+        origin: typeof window !== 'undefined' ? window.location.origin : '',
+        gisLoaded: typeof window !== 'undefined' && Boolean(window.google?.accounts?.oauth2),
+    });
+
     if (!clientId) {
         const err = new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it in Vercel Project Settings and redeploy.');
+        logDiag('ERROR: Client ID missing');
         if (onError) onError(err);
         return;
     }
@@ -27,26 +49,32 @@ export function connectGmail(onSuccess, onError) {
     // Ensure GIS library is loaded
     if (!window.google?.accounts?.oauth2) {
         const err = new Error('Google Identity Services library not loaded. Please refresh the page or check your internet/adblocker.');
+        logDiag('ERROR: GIS script not loaded');
         if (onError) onError(err);
         return;
     }
 
     try {
+        logDiag('Initializing initTokenClient');
         const client = window.google.accounts.oauth2.initTokenClient({
             client_id: clientId,
             scope: GMAIL_SCOPE,
             error_callback: (err) => {
-                console.error('Google GIS Error:', err);
+                logDiag('GIS error_callback fired', err);
                 if (onError) onError(new Error(err.message || `Google Auth Error: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
             },
             callback: (response) => {
-                console.log('Google OAuth callback response:', response);
+                logDiag('GIS callback fired', response);
 
                 // 1. If access_token is present, authorization succeeded!
                 if (response && response.access_token) {
                     const expiry = Date.now() + (response.expires_in * 1000);
                     localStorage.setItem(TOKEN_KEY, response.access_token);
                     localStorage.setItem(EXPIRY_KEY, String(expiry));
+                    logDiag('SUCCESS: Token acquired & saved to localStorage', {
+                        expiresInSeconds: response.expires_in,
+                        tokenPrefix: response.access_token.slice(0, 10) + '...',
+                    });
                     if (onSuccess) onSuccess(response.access_token);
                     return;
                 }
@@ -61,20 +89,29 @@ export function connectGmail(onSuccess, onError) {
                     } else if (response.error === 'origin_mismatch') {
                         msg = `Origin Mismatch: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`;
                     }
+                    logDiag('ERROR in GIS callback', { error: response.error, description: response.error_description });
                     if (onError) onError(new Error(msg));
                     return;
                 }
 
+                logDiag('ERROR: Neither token nor error in callback response', response);
                 if (onError) onError(new Error('No access token returned from Google.'));
             },
         });
 
-        // Must be called synchronously inside user click event to prevent browser popup blockers from auto-closing
+        logDiag('Calling client.requestAccessToken()');
         client.requestAccessToken();
     } catch (err) {
-        console.error('initTokenClient exception:', err);
+        logDiag('EXCEPTIONAL ERROR in connectGmail', err);
         if (onError) onError(new Error(err.message || 'Failed to initialize Google login.'));
     }
+}
+
+/**
+ * Get stored diagnostic logs for on-screen UI debugging.
+ */
+export function getDiagLogs() {
+    return typeof window !== 'undefined' ? window._gmailAuthLogs || [] : [];
 }
 
 /**
@@ -98,6 +135,7 @@ export function isGmailConnected() {
  * Revoke the stored token and clear local storage.
  */
 export function disconnectGmail() {
+    logDiag('Disconnecting Gmail and revoking token');
     const token = localStorage.getItem(TOKEN_KEY);
     if (token && window.google?.accounts?.oauth2) {
         window.google.accounts.oauth2.revoke(token, () => {});

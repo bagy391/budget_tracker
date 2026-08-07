@@ -1,16 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAuth }   from '../contexts/AuthContext';
 import Card    from '../components/common/Card';
 import Button  from '../components/common/Button';
 import Input   from '../components/common/Input';
 import Select  from '../components/common/Select';
-import { connectGmail, disconnectGmail, isGmailConnected } from '../utils/gmail/gmailAuth';
+import { connectGmail, disconnectGmail, isGmailConnected, getDiagLogs } from '../utils/gmail/gmailAuth';
 import { fetchNewMessages, markProcessed } from '../utils/gmail/gmailClient';
 import { parseEmails } from '../utils/gmail/parserEngine';
 import {
     Mail, RefreshCw, CheckCircle2, XCircle, Unlink, AlertTriangle,
-    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp, RotateCcw
+    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp, RotateCcw, Bug
 } from 'lucide-react';
 import './GmailSync.css';
 
@@ -34,7 +34,13 @@ const GmailSync = () => {
     const [skipped,      setSkipped]      = useState(new Set());
     const [debugData,    setDebugData]    = useState([]);
     const [showDebug,    setShowDebug]    = useState(false);
+    const [showDiag,     setShowDiag]     = useState(false);
     const [resetting,    setResetting]    = useState(false);
+    const [diagLogs,     setDiagLogs]     = useState([]);
+
+    const refreshDiag = () => {
+        setDiagLogs(getDiagLogs());
+    };
 
     // Auto-check connection when user returns focus to window after popup
     useEffect(() => {
@@ -43,6 +49,7 @@ const GmailSync = () => {
                 setConnected(true);
                 setSyncError('');
             }
+            refreshDiag();
         };
         window.addEventListener('focus', handleFocus);
         return () => window.removeEventListener('focus', handleFocus);
@@ -53,14 +60,20 @@ const GmailSync = () => {
     const handleConnect = () => {
         setSyncError('');
         setSyncInfo('');
+        setConnecting(true);
+        refreshDiag();
         connectGmail(
             (token) => {
                 setConnected(true);
+                setConnecting(false);
                 setSyncInfo('Gmail connected successfully! Click Sync Now below to scan your inbox.');
+                refreshDiag();
             },
             (err) => {
                 console.error('Connect error:', err);
                 setSyncError(err.message);
+                setConnecting(false);
+                refreshDiag();
             }
         );
     };
@@ -72,6 +85,19 @@ const GmailSync = () => {
         setSyncInfo('');
         setSyncError('');
         setDebugData([]);
+        refreshDiag();
+    };
+
+    const handleManualRecheck = () => {
+        const status = isGmailConnected();
+        setConnected(status);
+        if (status) {
+            setSyncError('');
+            setSyncInfo('Connection active! Found valid token in storage.');
+        } else {
+            setSyncError('No valid access token found in local storage.');
+        }
+        refreshDiag();
     };
 
     // ── Reset processed IDs ─────────────────────────────────────────────────
@@ -162,6 +188,7 @@ const GmailSync = () => {
 
     const expenseCategories = categories.filter(c => c.type === 'expense');
     const visiblePending    = pending.filter(p => !skipped.has(p.messageId));
+    const clientIdVal       = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
     return (
         <div className="gmail-sync-page">
@@ -186,14 +213,19 @@ const GmailSync = () => {
                             }
                         </p>
                     </div>
-                    {connected
-                        ? <Button variant="outline" onClick={handleDisconnect}>
-                            <Unlink size={16} /> Disconnect
-                          </Button>
-                        : <Button variant="primary" onClick={handleConnect} loading={connecting}>
-                            <Mail size={16} /> Connect Gmail
-                          </Button>
-                    }
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {connected
+                            ? <Button variant="outline" onClick={handleDisconnect}>
+                                <Unlink size={16} /> Disconnect
+                              </Button>
+                            : <Button variant="primary" onClick={handleConnect} loading={connecting}>
+                                <Mail size={16} /> Connect Gmail
+                              </Button>
+                        }
+                        <Button variant="ghost" onClick={handleManualRecheck} title="Re-check local storage token status">
+                            <RefreshCw size={14} /> Re-check
+                        </Button>
+                    </div>
                 </div>
 
                 {syncError && (
@@ -202,11 +234,44 @@ const GmailSync = () => {
                     </div>
                 )}
 
-                {/* Privacy note */}
-                <div className="gmail-privacy-note">
-                    <Info size={14} />
-                    Read-only access · emails never leave your device · only amount &amp; date are extracted
+                {/* Diagnostic drawer toggle */}
+                <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="gmail-privacy-note" style={{ marginTop: 0 }}>
+                        <Info size={14} />
+                        Read-only access · emails parsed locally · only amount &amp; date extracted
+                    </div>
+                    <button
+                        onClick={() => { setShowDiag(v => !v); refreshDiag(); }}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                    >
+                        <Bug size={14} /> OAuth Diag {showDiag ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
                 </div>
+
+                {/* Diagnostic Panel */}
+                {showDiag && (
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'var(--surface-variant)', borderRadius: '8px', fontSize: '0.8rem', fontFamily: 'monospace', color: 'var(--on-surface-variant)' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>🛠️ Live OAuth Diagnostics:</div>
+                        <div>• Domain Origin: <code>{typeof window !== 'undefined' ? window.location.origin : ''}</code></div>
+                        <div>• Client ID: <code>{clientIdVal ? `${clientIdVal.slice(0, 16)}...` : '❌ MISSING IN BUILD!'}</code></div>
+                        <div>• GIS Script Loaded: <code>{typeof window !== 'undefined' && Boolean(window.google?.accounts?.oauth2) ? '✅ Yes' : '❌ No'}</code></div>
+                        <div>• Local Token Present: <code>{connected ? '✅ Yes' : '❌ No'}</code></div>
+                        
+                        <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>Event Logs ({diagLogs.length}):</div>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--background)', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem' }}>
+                            {diagLogs.length === 0 ? (
+                                <div style={{ color: 'var(--text-muted)' }}>No logs yet. Click Connect Gmail to log events.</div>
+                            ) : (
+                                diagLogs.map((l, i) => (
+                                    <div key={i} style={{ marginBottom: '0.25rem', borderBottom: '1px dashed var(--border-color)', paddingBottom: '0.25rem' }}>
+                                        <span style={{ color: 'var(--primary)' }}>[{l.time}]</span> {l.msg}
+                                        {l.data && <pre style={{ margin: '0.2rem 0 0 1rem', fontSize: '0.75rem', whiteSpace: 'pre-wrap' }}>{JSON.stringify(l.data, null, 2)}</pre>}
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
             </Card>
 
             {/* Sync controls */}
