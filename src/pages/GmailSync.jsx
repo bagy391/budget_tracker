@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAuth }   from '../contexts/AuthContext';
 import Card    from '../components/common/Card';
@@ -25,6 +25,7 @@ const GmailSync = () => {
     const { categories, paymentMethods, addExpense, currentFamily } = useBudget();
 
     const [connected,    setConnected]    = useState(isGmailConnected());
+    const [connecting,   setConnecting]   = useState(false);
     const [daysBack,     setDaysBack]     = useState('10');
     const [syncing,      setSyncing]      = useState(false);
     const [syncError,    setSyncError]    = useState('');
@@ -35,61 +36,21 @@ const GmailSync = () => {
     const [showDebug,    setShowDebug]    = useState(false);
     const [resetting,    setResetting]    = useState(false);
 
-    // ── Sync logic function ──────────────────────────────────────────────────
-
-    const runSync = async (forceDays) => {
-        if (!user) {
-            setSyncError('User session not ready. Please try again.');
-            return;
-        }
-        setSyncing(true);
-        setSyncError('');
-        setSyncInfo('Scanning Gmail inbox for bank alerts...');
-        try {
-            const days     = Math.max(1, Math.min(90, parseInt(forceDays || daysBack) || 10));
-            const messages = await fetchNewMessages(user.id, days);
-            const { matched, unmatched } = parseEmails(messages, true);
-
-            // Mark unmatched as processed so they don't block future scans
-            const unmatchedIds = unmatched.map(m => m.messageId).filter(Boolean);
-            if (unmatchedIds.length) await markProcessed(user.id, unmatchedIds);
-
-            setDebugData(unmatched);
-            if (matched.length === 0) {
-                if (messages.length === 0) {
-                    setSyncInfo(`Scanned inbox for the last ${days} days — no new emails found or all previously scanned.`);
-                } else {
-                    setSyncInfo(`Scanned ${messages.length} email${messages.length !== 1 ? 's' : ''} — no new transaction alerts matched.`);
-                }
-            } else {
-                setSyncInfo(`Found ${matched.length} transaction${matched.length !== 1 ? 's' : ''} to review.`);
-            }
-            setPending(prev => {
-                const existing = new Set(prev.map(p => p.messageId));
-                return [...prev, ...matched.filter(p => !existing.has(p.messageId))];
-            });
-        } catch (err) {
-            console.error('Gmail sync error:', err);
-            setSyncError(err.message || 'Failed to sync emails from Gmail.');
-        } finally {
-            setSyncing(false);
-        }
-    };
-
     // ── Connect / Disconnect ────────────────────────────────────────────────
 
     const handleConnect = async () => {
+        setConnecting(true);
+        setSyncError('');
+        setSyncInfo('');
         try {
-            setSyncError('');
-            setSyncInfo('Connecting to Google...');
             await connectGmail();
             setConnected(true);
-            // Auto-trigger sync immediately after connecting
-            runSync();
+            setSyncInfo('Gmail connected! Click Sync Now below to scan your inbox.');
         } catch (err) {
             console.error('Connect error:', err);
             setSyncError(err.message);
-            setSyncInfo('');
+        } finally {
+            setConnecting(false);
         }
     };
 
@@ -110,10 +71,9 @@ const GmailSync = () => {
             const { supabase } = await import('../utils/supabaseClient');
             await supabase.from('gmail_processed').delete().eq('user_id', user.id);
             setDebugData([]);
-            setSyncInfo('Scan history cleared. Scanning inbox...');
+            setSyncInfo('Scan history cleared. Click Sync Now to scan.');
             setSyncError('');
             setPending([]);
-            await runSync();
         } catch (err) {
             setSyncError('Reset failed: ' + err.message);
         } finally {
@@ -121,8 +81,45 @@ const GmailSync = () => {
         }
     };
 
-    const handleSync = () => {
-        runSync();
+    // ── Sync ────────────────────────────────────────────────────────────────
+
+    const handleSync = async () => {
+        if (!user) {
+            setSyncError('User session not ready. Please try again.');
+            return;
+        }
+        setSyncing(true);
+        setSyncError('');
+        setSyncInfo('');
+        try {
+            const days     = Math.max(1, Math.min(90, parseInt(daysBack) || 10));
+            const messages = await fetchNewMessages(user.id, days);
+            const { matched, unmatched } = parseEmails(messages, true);
+
+            // Mark unmatched as processed so they don't block future scans
+            const unmatchedIds = unmatched.map(m => m.messageId).filter(Boolean);
+            if (unmatchedIds.length) await markProcessed(user.id, unmatchedIds);
+
+            setDebugData(unmatched);
+            if (matched.length === 0) {
+                if (messages.length === 0) {
+                    setSyncInfo(`Scanned inbox for the last ${days} days — no new emails found.`);
+                } else {
+                    setSyncInfo(`Scanned ${messages.length} email${messages.length !== 1 ? 's' : ''} — no new transaction alerts matched.`);
+                }
+            } else {
+                setSyncInfo(`Found ${matched.length} transaction${matched.length !== 1 ? 's' : ''} to review.`);
+            }
+            setPending(prev => {
+                const existing = new Set(prev.map(p => p.messageId));
+                return [...prev, ...matched.filter(p => !existing.has(p.messageId))];
+            });
+        } catch (err) {
+            console.error('Gmail sync error:', err);
+            setSyncError(err.message || 'Failed to sync emails from Gmail.');
+        } finally {
+            setSyncing(false);
+        }
     };
 
     // ── Per-card actions ────────────────────────────────────────────────────
@@ -167,14 +164,14 @@ const GmailSync = () => {
                     <div className="gmail-connect-info">
                         <div className="gmail-connect-status">
                             {connected
-                                ? <><CheckCircle2 size={18} color="var(--success)" /> Gmail Connected</>
-                                : <><XCircle size={18} color="var(--text-muted)" /> Not Connected</>
+                                ? <><CheckCircle2 size={18} color="var(--success)" /> Gmail connected</>
+                                : <><XCircle size={18} color="var(--text-muted)" /> Not connected</>
                             }
                         </div>
                         <p className="gmail-connect-desc">
                             {connected
-                                ? 'Your Gmail account is linked. Click Sync Now below to scan for transaction alerts.'
-                                : 'Connect your Gmail to automatically detect bank & UPI transactions from email alerts.'
+                                ? 'Your Gmail is linked. Use the sync button below to scan for bank emails.'
+                                : 'Connect Gmail to automatically detect bank & UPI transactions from your emails.'
                             }
                         </p>
                     </div>
@@ -182,16 +179,22 @@ const GmailSync = () => {
                         ? <Button variant="outline" onClick={handleDisconnect}>
                             <Unlink size={16} /> Disconnect
                           </Button>
-                        : <Button variant="primary" onClick={handleConnect}>
+                        : <Button variant="primary" onClick={handleConnect} loading={connecting}>
                             <Mail size={16} /> Connect Gmail
                           </Button>
                     }
                 </div>
 
+                {syncError && (
+                    <div className="gmail-error" style={{ marginTop: '0.75rem' }}>
+                        <AlertTriangle size={14} /> {syncError}
+                    </div>
+                )}
+
                 {/* Privacy note */}
                 <div className="gmail-privacy-note">
                     <Info size={14} />
-                    Read-only access · emails parsed locally in browser · only amount & date are extracted
+                    Read-only access · emails never leave your device · only amount &amp; date are extracted
                 </div>
             </Card>
 
@@ -223,9 +226,9 @@ const GmailSync = () => {
                             variant="ghost"
                             onClick={handleReset}
                             loading={resetting}
-                            title="Clear history and re-scan all emails"
+                            title="Re-scan emails that were already processed"
                         >
-                            <RotateCcw size={14} /> Reset &amp; Re-scan
+                            ↺ Reset
                         </Button>
                     </div>
 
@@ -234,8 +237,7 @@ const GmailSync = () => {
                             <AlertTriangle size={14} /> Select a family first to save transactions.
                         </div>
                     )}
-                    {syncError && <div className="gmail-error"><AlertTriangle size={14} /> {syncError}</div>}
-                    {syncInfo  && <div className="gmail-info"><Info size={14} /> {syncInfo}</div>}
+                    {syncInfo && <div className="gmail-info"><Info size={14} /> {syncInfo}</div>}
                 </Card>
             )}
 
@@ -247,7 +249,7 @@ const GmailSync = () => {
                         <span className="gmail-pending-badge">{visiblePending.length}</span>
                     </h2>
                     <p className="gmail-pending-desc">
-                        Select category and payment method, then save. Skip to dismiss.
+                        Fill in category and description, then save. Skip to dismiss permanently.
                     </p>
                     <div className="gmail-pending-list">
                         {visiblePending.map(tx => (
@@ -264,15 +266,11 @@ const GmailSync = () => {
                 </div>
             )}
 
-            {/* Empty state when synced */}
+            {/* Empty state */}
             {connected && visiblePending.length === 0 && !syncing && syncInfo && (
-                <Card className="gmail-empty" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <CheckCircle2 size={44} color="var(--success)" style={{ margin: '0 auto 1rem' }} />
-                    <h3>Inbox Scanned</h3>
-                    <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 1rem' }}>{syncInfo}</p>
-                    <Button variant="outline" onClick={handleReset} loading={resetting}>
-                        <RotateCcw size={16} /> Re-scan Previous Emails
-                    </Button>
+                <Card className="gmail-empty">
+                    <CheckCircle2 size={40} color="var(--success)" />
+                    <p>{syncInfo}</p>
                 </Card>
             )}
 
@@ -284,7 +282,7 @@ const GmailSync = () => {
                         onClick={() => setShowDebug(v => !v)}
                     >
                         {showDebug ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        Debug: {debugData.length} unmatched email{debugData.length !== 1 ? 's' : ''} scanned
+                        Debug: {debugData.length} unmatched email{debugData.length !== 1 ? 's' : ''}
                     </button>
                     {showDebug && (
                         <div className="gmail-debug-list">

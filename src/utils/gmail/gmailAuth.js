@@ -20,7 +20,7 @@ export function connectGmail() {
     return new Promise((resolve, reject) => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         if (!clientId) {
-            reject(new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it and redeploy.'));
+            reject(new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it in Vercel Settings and redeploy.'));
             return;
         }
 
@@ -30,15 +30,20 @@ export function connectGmail() {
             return;
         }
 
+        let timeoutId = null;
+
         try {
             const client = window.google.accounts.oauth2.initTokenClient({
                 client_id: clientId,
                 scope: GMAIL_SCOPE,
                 error_callback: (err) => {
+                    if (timeoutId) clearTimeout(timeoutId);
                     console.error('Google GIS Error:', err);
-                    reject(new Error(err.message || 'Google Auth Error: Please add ' + window.location.origin + ' to Authorized JavaScript Origins in Google Cloud Console.'));
+                    reject(new Error(err.message || `Google Auth Error: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
                 },
                 callback: (response) => {
+                    if (timeoutId) clearTimeout(timeoutId);
+
                     if (response.error) {
                         if (response.error === 'popup_closed_by_user') {
                             reject(new Error('Google sign-in popup was closed before completing authorization.'));
@@ -47,7 +52,7 @@ export function connectGmail() {
                         } else if (response.error === 'origin_mismatch') {
                             reject(new Error(`Origin Mismatch: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
                         } else {
-                            reject(new Error(`Google OAuth error: ${response.error_description || response.error}`));
+                            reject(new Error(`Google OAuth error (${response.error}): ${response.error_description || response.error}`));
                         }
                         return;
                     }
@@ -65,8 +70,14 @@ export function connectGmail() {
                 },
             });
 
+            // 45-second fallback timer in case OAuth popup closes without callback
+            timeoutId = setTimeout(() => {
+                reject(new Error('Google authentication timed out or popup was closed. If the popup closed immediately, please verify that ' + window.location.origin + ' is added under Authorized JavaScript Origins in Google Cloud Console.'));
+            }, 45000);
+
             client.requestAccessToken({ prompt: 'consent' });
         } catch (err) {
+            if (timeoutId) clearTimeout(timeoutId);
             console.error('initTokenClient exception:', err);
             reject(new Error(err.message || 'Failed to initialize Google login.'));
         }
