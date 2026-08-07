@@ -46,7 +46,7 @@ export function connectGmail() {
 
                     if (response.error) {
                         if (response.error === 'popup_closed_by_user') {
-                            reject(new Error('Google sign-in popup was closed before completing authorization.'));
+                            reject(new Error(`Popup window closed. If it closed immediately without prompting, please add ${window.location.origin} under Authorized JavaScript Origins in Google Cloud Console.`));
                         } else if (response.error === 'access_denied') {
                             reject(new Error('Access denied. Please grant read permission for Gmail alerts.'));
                         } else if (response.error === 'origin_mismatch') {
@@ -72,10 +72,11 @@ export function connectGmail() {
 
             // 45-second fallback timer in case OAuth popup closes without callback
             timeoutId = setTimeout(() => {
-                reject(new Error('Google authentication timed out or popup was closed. If the popup closed immediately, please verify that ' + window.location.origin + ' is added under Authorized JavaScript Origins in Google Cloud Console.'));
+                reject(new Error('Google authentication timed out. Please verify that ' + window.location.origin + ' is added under Authorized JavaScript Origins in Google Cloud Console.'));
             }, 45000);
 
-            client.requestAccessToken({ prompt: 'consent' });
+            // Request access token without forcing consent re-prompting that closes popups on production domains
+            client.requestAccessToken();
         } catch (err) {
             if (timeoutId) clearTimeout(timeoutId);
             console.error('initTokenClient exception:', err);
