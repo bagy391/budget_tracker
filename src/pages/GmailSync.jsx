@@ -350,14 +350,7 @@ const GmailSync = () => {
                         >
                             <RefreshCw size={16} /> Sync Now
                         </Button>
-                        <Button
-                            variant="ghost"
-                            onClick={handleReset}
-                            loading={resetting}
-                            title="Re-scan emails that were already processed"
-                        >
-                            ↺ Reset
-                        </Button>
+                        {/* Reset button disabled for now */}
                     </div>
 
                     {!currentFamily && (
