@@ -10,7 +10,7 @@ import { fetchNewMessages, markProcessed } from '../utils/gmail/gmailClient';
 import { parseEmails } from '../utils/gmail/parserEngine';
 import {
     Mail, RefreshCw, CheckCircle2, XCircle, Unlink, AlertTriangle,
-    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp, RotateCcw, Bug
+    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp, RotateCcw, Bug, Clock
 } from 'lucide-react';
 import './GmailSync.css';
 
@@ -20,13 +20,32 @@ const PAYMENT_TYPE_ICONS = {
     upi:         <Wallet size={14} />,
 };
 
+function formatLastSynced(isoStr) {
+    if (!isoStr) return null;
+    const date = new Date(isoStr);
+    if (isNaN(date)) return null;
+
+    const diffMs = Date.now() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+    if (diffDays === 1) return 'Yesterday';
+    return `${diffDays} days ago`;
+}
+
 const GmailSync = () => {
     const { user }   = useAuth();
     const { categories, paymentMethods, addExpense, currentFamily } = useBudget();
 
+    const lastSyncKey = `gmail_last_synced_${user?.id || 'default'}`;
+
     const [connected,    setConnected]    = useState(isGmailConnected());
     const [connecting,   setConnecting]   = useState(false);
-    const [daysBack,     setDaysBack]     = useState('10');
+    const [daysBack,     setDaysBack]     = useState('1');
     const [syncing,      setSyncing]      = useState(false);
     const [syncError,    setSyncError]    = useState('');
     const [syncInfo,     setSyncInfo]     = useState('');
@@ -37,6 +56,15 @@ const GmailSync = () => {
     const [showDiag,     setShowDiag]     = useState(false);
     const [resetting,    setResetting]    = useState(false);
     const [diagLogs,     setDiagLogs]     = useState([]);
+    const [lastSyncedAt, setLastSyncedAt] = useState(() => localStorage.getItem(lastSyncKey));
+
+    // Update stored key when user changes
+    useEffect(() => {
+        if (user?.id) {
+            const stored = localStorage.getItem(`gmail_last_synced_${user.id}`);
+            if (stored) setLastSyncedAt(stored);
+        }
+    }, [user?.id]);
 
     const refreshDiag = () => {
         setDiagLogs(getDiagLogs());
@@ -129,7 +157,16 @@ const GmailSync = () => {
         setSyncError('');
         setSyncInfo('');
         try {
-            const days     = Math.max(1, Math.min(90, parseInt(daysBack) || 10));
+            // Calculate days to scan: default 1 day, or elapsed days since last sync if larger
+            let daysToScan = parseInt(daysBack) || 1;
+            if (lastSyncedAt) {
+                const elapsedDays = Math.ceil((Date.now() - new Date(lastSyncedAt).getTime()) / 86400000);
+                if (elapsedDays > daysToScan) {
+                    daysToScan = Math.min(90, elapsedDays);
+                }
+            }
+            const days = Math.max(1, Math.min(90, daysToScan));
+
             const messages = await fetchNewMessages(user.id, days);
             const { matched, unmatched } = parseEmails(messages, true);
 
@@ -137,10 +174,15 @@ const GmailSync = () => {
             const unmatchedIds = unmatched.map(m => m.messageId).filter(Boolean);
             if (unmatchedIds.length) await markProcessed(user.id, unmatchedIds);
 
+            // Update last synced timestamp
+            const nowIso = new Date().toISOString();
+            localStorage.setItem(lastSyncKey, nowIso);
+            setLastSyncedAt(nowIso);
+
             setDebugData(unmatched);
             if (matched.length === 0) {
                 if (messages.length === 0) {
-                    setSyncInfo(`Scanned inbox for the last ${days} days — no new emails found.`);
+                    setSyncInfo(`Scanned inbox for the last ${days} day${days !== 1 ? 's' : ''} — no new emails found.`);
                 } else {
                     setSyncInfo(`Scanned ${messages.length} email${messages.length !== 1 ? 's' : ''} — no new transaction alerts matched.`);
                 }
@@ -189,12 +231,21 @@ const GmailSync = () => {
     const expenseCategories = categories.filter(c => c.type === 'expense');
     const visiblePending    = pending.filter(p => !skipped.has(p.messageId));
     const clientIdVal       = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const formattedLastSync = formatLastSynced(lastSyncedAt);
 
     return (
         <div className="gmail-sync-page">
-            <h1 className="gmail-sync-title">
-                <Mail size={28} color="var(--primary)" /> Gmail Sync
-            </h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h1 className="gmail-sync-title" style={{ margin: 0 }}>
+                    <Mail size={28} color="var(--primary)" /> Gmail Sync
+                </h1>
+                {lastSyncedAt && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', color: 'var(--text-muted)', background: 'var(--surface-variant)', padding: '0.35rem 0.75rem', borderRadius: '20px' }}>
+                        <Clock size={14} color="var(--primary)" />
+                        <span>Last synced: <strong>{formattedLastSync}</strong></span>
+                    </div>
+                )}
+            </div>
 
             {/* Connect card */}
             <Card className="gmail-connect-card">
@@ -256,6 +307,7 @@ const GmailSync = () => {
                         <div>• Client ID: <code>{clientIdVal ? `${clientIdVal.slice(0, 16)}...` : '❌ MISSING IN BUILD!'}</code></div>
                         <div>• GIS Script Loaded: <code>{typeof window !== 'undefined' && Boolean(window.google?.accounts?.oauth2) ? '✅ Yes' : '❌ No'}</code></div>
                         <div>• Local Token Present: <code>{connected ? '✅ Yes' : '❌ No'}</code></div>
+                        <div>• Last Synced At: <code>{lastSyncedAt || 'Never'}</code></div>
                         
                         <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>Event Logs ({diagLogs.length}):</div>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--background)', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem' }}>
@@ -288,7 +340,7 @@ const GmailSync = () => {
                                 onChange={e => setDaysBack(e.target.value)}
                                 className="gmail-days-field"
                             />
-                            <span className="gmail-label">days</span>
+                            <span className="gmail-label">day{daysBack !== '1' ? 's' : ''}</span>
                         </div>
                         <Button
                             variant="primary"

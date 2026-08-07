@@ -114,7 +114,7 @@ function getHeader(headers, name) {
  * @param {number} daysBack - How many days back to search (default 10)
  * @returns {Array<{id, sender, subject, body, date}>}
  */
-export async function fetchNewMessages(userId, daysBack = 10) {
+export async function fetchNewMessages(userId, daysBack = 1) {
     // Format date as YYYY/MM/DD for Gmail API after: query
     const d = new Date(Date.now() - daysBack * 86400 * 1000);
     const afterDateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
