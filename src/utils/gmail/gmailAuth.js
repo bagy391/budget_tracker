@@ -12,7 +12,7 @@ const EXPIRY_KEY  = 'gmail_token_expiry';
 
 /**
  * Open the Google OAuth popup and get an access token.
- * Requires VITE_GOOGLE_CLIENT_ID to be set in .env.local
+ * Requires VITE_GOOGLE_CLIENT_ID to be set in environment variables.
  *
  * Returns the access token string, or throws on failure.
  */
@@ -20,33 +20,56 @@ export function connectGmail() {
     return new Promise((resolve, reject) => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
         if (!clientId) {
-            reject(new Error('VITE_GOOGLE_CLIENT_ID is not set in .env.local'));
+            reject(new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it and redeploy.'));
             return;
         }
 
         // Ensure GIS library is loaded
         if (!window.google?.accounts?.oauth2) {
-            reject(new Error('Google Identity Services library not loaded'));
+            reject(new Error('Google Identity Services library not loaded. Please refresh the page or check your internet/adblocker.'));
             return;
         }
 
-        const client = window.google.accounts.oauth2.initTokenClient({
-            client_id: clientId,
-            scope: GMAIL_SCOPE,
-            callback: (response) => {
-                if (response.error) {
-                    reject(new Error(response.error));
-                    return;
-                }
-                // Store token + expiry
-                const expiry = Date.now() + (response.expires_in * 1000);
-                localStorage.setItem(TOKEN_KEY, response.access_token);
-                localStorage.setItem(EXPIRY_KEY, String(expiry));
-                resolve(response.access_token);
-            },
-        });
+        try {
+            const client = window.google.accounts.oauth2.initTokenClient({
+                client_id: clientId,
+                scope: GMAIL_SCOPE,
+                error_callback: (err) => {
+                    console.error('Google GIS Error:', err);
+                    reject(new Error(err.message || 'Google Auth Error: Please add ' + window.location.origin + ' to Authorized JavaScript Origins in Google Cloud Console.'));
+                },
+                callback: (response) => {
+                    if (response.error) {
+                        if (response.error === 'popup_closed_by_user') {
+                            reject(new Error('Google sign-in popup was closed before completing authorization.'));
+                        } else if (response.error === 'access_denied') {
+                            reject(new Error('Access denied. Please grant read permission for Gmail alerts.'));
+                        } else if (response.error === 'origin_mismatch') {
+                            reject(new Error(`Origin Mismatch: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
+                        } else {
+                            reject(new Error(`Google OAuth error: ${response.error_description || response.error}`));
+                        }
+                        return;
+                    }
 
-        client.requestAccessToken({ prompt: 'consent' });
+                    if (!response.access_token) {
+                        reject(new Error('No access token returned from Google.'));
+                        return;
+                    }
+
+                    // Store token + expiry
+                    const expiry = Date.now() + (response.expires_in * 1000);
+                    localStorage.setItem(TOKEN_KEY, response.access_token);
+                    localStorage.setItem(EXPIRY_KEY, String(expiry));
+                    resolve(response.access_token);
+                },
+            });
+
+            client.requestAccessToken({ prompt: 'consent' });
+        } catch (err) {
+            console.error('initTokenClient exception:', err);
+            reject(new Error(err.message || 'Failed to initialize Google login.'));
+        }
     });
 }
 
