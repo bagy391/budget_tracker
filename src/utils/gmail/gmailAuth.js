@@ -11,78 +11,67 @@ const EXPIRY_KEY  = 'gmail_token_expiry';
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Open the Google OAuth popup and get an access token.
- * Requires VITE_GOOGLE_CLIENT_ID to be set in environment variables.
+ * Trigger Google OAuth popup synchronously in response to user click.
  *
- * Returns the access token string, or throws on failure.
+ * @param {function} onSuccess - Callback when token is acquired (receives token string)
+ * @param {function} onError   - Callback when error occurs (receives Error object)
  */
-export function connectGmail() {
-    return new Promise((resolve, reject) => {
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        if (!clientId) {
-            reject(new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it in Vercel Settings and redeploy.'));
-            return;
-        }
+export function connectGmail(onSuccess, onError) {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+        const err = new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it in Vercel Project Settings and redeploy.');
+        if (onError) onError(err);
+        return;
+    }
 
-        // Ensure GIS library is loaded
-        if (!window.google?.accounts?.oauth2) {
-            reject(new Error('Google Identity Services library not loaded. Please refresh the page or check your internet/adblocker.'));
-            return;
-        }
+    // Ensure GIS library is loaded
+    if (!window.google?.accounts?.oauth2) {
+        const err = new Error('Google Identity Services library not loaded. Please refresh the page or check your internet/adblocker.');
+        if (onError) onError(err);
+        return;
+    }
 
-        let timeoutId = null;
-
-        try {
-            const client = window.google.accounts.oauth2.initTokenClient({
-                client_id: clientId,
-                scope: GMAIL_SCOPE,
-                error_callback: (err) => {
-                    if (timeoutId) clearTimeout(timeoutId);
-                    console.error('Google GIS Error:', err);
-                    reject(new Error(err.message || `Google Auth Error: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
-                },
-                callback: (response) => {
-                    if (timeoutId) clearTimeout(timeoutId);
-
-                    if (response.error) {
-                        if (response.error === 'popup_closed_by_user') {
-                            reject(new Error(`Popup window closed. If it closed immediately without prompting, please add ${window.location.origin} under Authorized JavaScript Origins in Google Cloud Console.`));
-                        } else if (response.error === 'access_denied') {
-                            reject(new Error('Access denied. Please grant read permission for Gmail alerts.'));
-                        } else if (response.error === 'origin_mismatch') {
-                            reject(new Error(`Origin Mismatch: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
-                        } else {
-                            reject(new Error(`Google OAuth error (${response.error}): ${response.error_description || response.error}`));
-                        }
-                        return;
+    try {
+        const client = window.google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: GMAIL_SCOPE,
+            error_callback: (err) => {
+                console.error('Google GIS Error:', err);
+                if (onError) onError(new Error(err.message || `Google Auth Error: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
+            },
+            callback: (response) => {
+                if (response.error) {
+                    let msg = `Google OAuth error: ${response.error}`;
+                    if (response.error === 'popup_closed_by_user') {
+                        msg = `Popup closed. If it closed immediately, check Google Cloud Console: 1) Is ${window.location.origin} under Authorized JavaScript Origins? 2) Is your email in Test Users (or App Published)?`;
+                    } else if (response.error === 'access_denied') {
+                        msg = 'Access denied. Permission to read Gmail was not granted.';
+                    } else if (response.error === 'origin_mismatch') {
+                        msg = `Origin Mismatch: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`;
                     }
+                    if (onError) onError(new Error(msg));
+                    return;
+                }
 
-                    if (!response.access_token) {
-                        reject(new Error('No access token returned from Google.'));
-                        return;
-                    }
+                if (!response.access_token) {
+                    if (onError) onError(new Error('No access token returned from Google.'));
+                    return;
+                }
 
-                    // Store token + expiry
-                    const expiry = Date.now() + (response.expires_in * 1000);
-                    localStorage.setItem(TOKEN_KEY, response.access_token);
-                    localStorage.setItem(EXPIRY_KEY, String(expiry));
-                    resolve(response.access_token);
-                },
-            });
+                // Store token + expiry
+                const expiry = Date.now() + (response.expires_in * 1000);
+                localStorage.setItem(TOKEN_KEY, response.access_token);
+                localStorage.setItem(EXPIRY_KEY, String(expiry));
+                if (onSuccess) onSuccess(response.access_token);
+            },
+        });
 
-            // 45-second fallback timer in case OAuth popup closes without callback
-            timeoutId = setTimeout(() => {
-                reject(new Error('Google authentication timed out. Please verify that ' + window.location.origin + ' is added under Authorized JavaScript Origins in Google Cloud Console.'));
-            }, 45000);
-
-            // Request access token without forcing consent re-prompting that closes popups on production domains
-            client.requestAccessToken();
-        } catch (err) {
-            if (timeoutId) clearTimeout(timeoutId);
-            console.error('initTokenClient exception:', err);
-            reject(new Error(err.message || 'Failed to initialize Google login.'));
-        }
-    });
+        // Must be called synchronously inside user click event to prevent browser popup blockers from auto-closing
+        client.requestAccessToken();
+    } catch (err) {
+        console.error('initTokenClient exception:', err);
+        if (onError) onError(new Error(err.message || 'Failed to initialize Google login.'));
+    }
 }
 
 /**

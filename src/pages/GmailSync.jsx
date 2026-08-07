@@ -38,20 +38,19 @@ const GmailSync = () => {
 
     // ── Connect / Disconnect ────────────────────────────────────────────────
 
-    const handleConnect = async () => {
-        setConnecting(true);
+    const handleConnect = () => {
         setSyncError('');
         setSyncInfo('');
-        try {
-            await connectGmail();
-            setConnected(true);
-            setSyncInfo('Gmail connected! Click Sync Now below to scan your inbox.');
-        } catch (err) {
-            console.error('Connect error:', err);
-            setSyncError(err.message);
-        } finally {
-            setConnecting(false);
-        }
+        connectGmail(
+            (token) => {
+                setConnected(true);
+                setSyncInfo('Gmail connected successfully! Click Sync Now below to scan your inbox.');
+            },
+            (err) => {
+                console.error('Connect error:', err);
+                setSyncError(err.message);
+            }
+        );
     };
 
     const handleDisconnect = () => {
