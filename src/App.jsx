@@ -11,8 +11,9 @@ import Overview from './pages/Overview';
 import Transactions from './pages/Transactions';
 import Dashboard from './pages/Dashboard';
 import Budget from './pages/Budget';
-import Settings from './pages/Settings';
-import Wealth from './pages/Wealth';
+import Settings  from './pages/Settings';
+import Wealth    from './pages/Wealth';
+import GmailSync from './pages/GmailSync';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const AppRoutes = () => {
@@ -57,8 +58,9 @@ const AppRoutes = () => {
                 <Route path="transactions" element={<Transactions />} />
                 <Route path="dashboard" element={<Dashboard />} />
                 <Route path="budgets" element={<Budget />} />
-                <Route path="wealth" element={<Wealth />} />
-                <Route path="settings" element={<Settings />} />
+                <Route path="wealth"      element={<Wealth />} />
+                <Route path="gmail-sync"  element={<GmailSync />} />
+                <Route path="settings"    element={<Settings />} />
             </Route>
 
             {/* Catch all */}
