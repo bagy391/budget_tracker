@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAuth }   from '../contexts/AuthContext';
 import Card    from '../components/common/Card';
@@ -10,7 +10,7 @@ import { fetchNewMessages, markProcessed } from '../utils/gmail/gmailClient';
 import { parseEmails } from '../utils/gmail/parserEngine';
 import {
     Mail, RefreshCw, CheckCircle2, XCircle, Unlink, AlertTriangle,
-    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp
+    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp, RotateCcw
 } from 'lucide-react';
 import './GmailSync.css';
 
@@ -35,61 +35,32 @@ const GmailSync = () => {
     const [showDebug,    setShowDebug]    = useState(false);
     const [resetting,    setResetting]    = useState(false);
 
-    // ── Connect / Disconnect ────────────────────────────────────────────────
+    // ── Sync logic function ──────────────────────────────────────────────────
 
-    const handleConnect = async () => {
-        try {
-            setSyncError('');
-            await connectGmail();
-            setConnected(true);
-        } catch (err) {
-            setSyncError(err.message);
+    const runSync = async (forceDays) => {
+        if (!user) {
+            setSyncError('User session not ready. Please try again.');
+            return;
         }
-    };
-
-    const handleDisconnect = () => {
-        disconnectGmail();
-        setConnected(false);
-        setPending([]);
-        setSyncInfo('');
-    };
-
-    // ── Reset processed IDs ─────────────────────────────────────────────────
-    const handleReset = async () => {
-        if (!confirm('This will allow all previously scanned emails to appear again. Continue?')) return;
-        setResetting(true);
-        try {
-            const { supabase } = await import('../utils/supabaseClient');
-            await supabase.from('gmail_processed').delete().eq('user_id', user.id);
-            setDebugData([]);
-            setSyncInfo('');
-            setSyncError('');
-            setPending([]);
-        } catch (err) {
-            setSyncError('Reset failed: ' + err.message);
-        } finally {
-            setResetting(false);
-        }
-    };
-
-    // ── Sync ────────────────────────────────────────────────────────────────
-
-    const handleSync = async () => {
         setSyncing(true);
         setSyncError('');
-        setSyncInfo('');
+        setSyncInfo('Scanning Gmail inbox for bank alerts...');
         try {
-            const days     = Math.max(1, Math.min(90, parseInt(daysBack) || 10));
+            const days     = Math.max(1, Math.min(90, parseInt(forceDays || daysBack) || 10));
             const messages = await fetchNewMessages(user.id, days);
             const { matched, unmatched } = parseEmails(messages, true);
 
-            // Mark unmatched as processed so they never appear again
+            // Mark unmatched as processed so they don't block future scans
             const unmatchedIds = unmatched.map(m => m.messageId).filter(Boolean);
             if (unmatchedIds.length) await markProcessed(user.id, unmatchedIds);
 
             setDebugData(unmatched);
             if (matched.length === 0) {
-                setSyncInfo(`Scanned ${messages.length} email${messages.length !== 1 ? 's' : ''} — no new transactions found.`);
+                if (messages.length === 0) {
+                    setSyncInfo(`Scanned inbox for the last ${days} days — no new emails found or all previously scanned.`);
+                } else {
+                    setSyncInfo(`Scanned ${messages.length} email${messages.length !== 1 ? 's' : ''} — no new transaction alerts matched.`);
+                }
             } else {
                 setSyncInfo(`Found ${matched.length} transaction${matched.length !== 1 ? 's' : ''} to review.`);
             }
@@ -98,10 +69,60 @@ const GmailSync = () => {
                 return [...prev, ...matched.filter(p => !existing.has(p.messageId))];
             });
         } catch (err) {
-            setSyncError(err.message);
+            console.error('Gmail sync error:', err);
+            setSyncError(err.message || 'Failed to sync emails from Gmail.');
         } finally {
             setSyncing(false);
         }
+    };
+
+    // ── Connect / Disconnect ────────────────────────────────────────────────
+
+    const handleConnect = async () => {
+        try {
+            setSyncError('');
+            setSyncInfo('Connecting to Google...');
+            await connectGmail();
+            setConnected(true);
+            // Auto-trigger sync immediately after connecting
+            runSync();
+        } catch (err) {
+            console.error('Connect error:', err);
+            setSyncError(err.message);
+            setSyncInfo('');
+        }
+    };
+
+    const handleDisconnect = () => {
+        disconnectGmail();
+        setConnected(false);
+        setPending([]);
+        setSyncInfo('');
+        setSyncError('');
+        setDebugData([]);
+    };
+
+    // ── Reset processed IDs ─────────────────────────────────────────────────
+    const handleReset = async () => {
+        if (!confirm('This will clear the scan history and allow previously scanned emails to appear again. Continue?')) return;
+        setResetting(true);
+        try {
+            const { supabase } = await import('../utils/supabaseClient');
+            await supabase.from('gmail_processed').delete().eq('user_id', user.id);
+            setDebugData([]);
+            setSyncInfo('Scan history cleared. Scanning inbox...');
+            setSyncError('');
+            setPending([]);
+            await runSync();
+        } catch (err) {
+            setSyncError('Reset failed: ' + err.message);
+        } finally {
+            setResetting(false);
+        }
+    };
+
+    const handleSync = () => {
+        runSync();
     };
 
     // ── Per-card actions ────────────────────────────────────────────────────
@@ -146,14 +167,14 @@ const GmailSync = () => {
                     <div className="gmail-connect-info">
                         <div className="gmail-connect-status">
                             {connected
-                                ? <><CheckCircle2 size={18} color="var(--success)" /> Gmail connected</>
-                                : <><XCircle size={18} color="var(--text-muted)" /> Not connected</>
+                                ? <><CheckCircle2 size={18} color="var(--success)" /> Gmail Connected</>
+                                : <><XCircle size={18} color="var(--text-muted)" /> Not Connected</>
                             }
                         </div>
                         <p className="gmail-connect-desc">
                             {connected
-                                ? 'Your Gmail is linked. Use the sync button below to scan for bank emails.'
-                                : 'Connect Gmail to automatically detect bank & UPI transactions from your emails.'
+                                ? 'Your Gmail account is linked. Click Sync Now below to scan for transaction alerts.'
+                                : 'Connect your Gmail to automatically detect bank & UPI transactions from email alerts.'
                             }
                         </p>
                     </div>
@@ -170,7 +191,7 @@ const GmailSync = () => {
                 {/* Privacy note */}
                 <div className="gmail-privacy-note">
                     <Info size={14} />
-                    Read-only access · emails never leave your device · only amount &amp; date are extracted
+                    Read-only access · emails parsed locally in browser · only amount & date are extracted
                 </div>
             </Card>
 
@@ -202,9 +223,9 @@ const GmailSync = () => {
                             variant="ghost"
                             onClick={handleReset}
                             loading={resetting}
-                            title="Re-scan emails that were already processed"
+                            title="Clear history and re-scan all emails"
                         >
-                            ↺ Reset
+                            <RotateCcw size={14} /> Reset &amp; Re-scan
                         </Button>
                     </div>
 
@@ -226,7 +247,7 @@ const GmailSync = () => {
                         <span className="gmail-pending-badge">{visiblePending.length}</span>
                     </h2>
                     <p className="gmail-pending-desc">
-                        Fill in category and description, then save. Skip to dismiss permanently.
+                        Select category and payment method, then save. Skip to dismiss.
                     </p>
                     <div className="gmail-pending-list">
                         {visiblePending.map(tx => (
@@ -243,11 +264,15 @@ const GmailSync = () => {
                 </div>
             )}
 
-            {/* Empty state */}
+            {/* Empty state when synced */}
             {connected && visiblePending.length === 0 && !syncing && syncInfo && (
-                <Card className="gmail-empty">
-                    <CheckCircle2 size={40} color="var(--success)" />
-                    <p>All caught up! No pending transactions.</p>
+                <Card className="gmail-empty" style={{ textAlign: 'center', padding: '2rem' }}>
+                    <CheckCircle2 size={44} color="var(--success)" style={{ margin: '0 auto 1rem' }} />
+                    <h3>Inbox Scanned</h3>
+                    <p style={{ color: 'var(--text-muted)', margin: '0.5rem 0 1rem' }}>{syncInfo}</p>
+                    <Button variant="outline" onClick={handleReset} loading={resetting}>
+                        <RotateCcw size={16} /> Re-scan Previous Emails
+                    </Button>
                 </Card>
             )}
 
@@ -259,7 +284,7 @@ const GmailSync = () => {
                         onClick={() => setShowDebug(v => !v)}
                     >
                         {showDebug ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                        Debug: {debugData.length} unmatched email{debugData.length !== 1 ? 's' : ''}
+                        Debug: {debugData.length} unmatched email{debugData.length !== 1 ? 's' : ''} scanned
                     </button>
                     {showDebug && (
                         <div className="gmail-debug-list">
