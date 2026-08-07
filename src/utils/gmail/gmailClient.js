@@ -65,21 +65,38 @@ function decodeBase64(str) {
 function extractBody(payload) {
     if (!payload) return '';
 
-    // Plain body
-    if (payload.body?.data) return decodeBase64(payload.body.data);
+    let htmlBody = '';
 
-    // Multipart — prefer text/plain
-    if (payload.parts) {
-        for (const part of payload.parts) {
-            if (part.mimeType === 'text/plain' && part.body?.data) {
-                return decodeBase64(part.body.data);
+    function walk(part) {
+        if (part.mimeType === 'text/plain' && part.body?.data) {
+            return decodeBase64(part.body.data);
+        }
+        if (part.mimeType === 'text/html' && part.body?.data) {
+            htmlBody = decodeBase64(part.body.data);
+        }
+        if (part.parts) {
+            for (const subPart of part.parts) {
+                const res = walk(subPart);
+                if (res) return res;
             }
         }
-        // Fallback to first part with data
-        for (const part of payload.parts) {
-            if (part.body?.data) return decodeBase64(part.body.data);
-        }
+        return null;
     }
+
+    const plainText = walk(payload);
+    if (plainText) return plainText;
+
+    // Fallback: convert HTML to text by stripping tags & entities
+    if (htmlBody) {
+        return htmlBody
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&amp;/g, '&')
+            .replace(/\s+/g, ' ');
+    }
+
     return '';
 }
 
@@ -98,11 +115,13 @@ function getHeader(headers, name) {
  * @returns {Array<{id, sender, subject, body, date}>}
  */
 export async function fetchNewMessages(userId, daysBack = 10) {
-    const after = Math.floor((Date.now() - daysBack * 86400 * 1000) / 1000);
+    // Format date as YYYY/MM/DD for Gmail API after: query
+    const d = new Date(Date.now() - daysBack * 86400 * 1000);
+    const afterDateStr = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 
-    // Fetch message list
+    // Fetch all bank emails by searching for bank names in from/subject/body
     const listData = await gmailFetch('/messages', {
-        q: `after:${after} (debit OR credit OR debited OR credited OR paid OR payment OR transaction OR alert)`,
+        q: `after:${afterDateStr} (from:indie.alerts@indusind.com OR from:alerts@axis.bank.in OR from:credit_cards@icici.bank.in OR from:hsbc@mail.hsbc.co.in OR from:alerts@hdfcbank.bank.in OR from:alerts@yes.bank.in OR from:googlepay-noreply@google.com OR from:noreply@phonepe.com OR from:no-reply@paytm.com)`,
         maxResults: 100,
     });
 

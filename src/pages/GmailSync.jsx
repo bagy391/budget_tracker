@@ -10,7 +10,7 @@ import { fetchNewMessages, markProcessed } from '../utils/gmail/gmailClient';
 import { parseEmails } from '../utils/gmail/parserEngine';
 import {
     Mail, RefreshCw, CheckCircle2, XCircle, Unlink, AlertTriangle,
-    Banknote, CreditCard, Wallet, Info
+    Banknote, CreditCard, Wallet, Info, ChevronDown, ChevronUp
 } from 'lucide-react';
 import './GmailSync.css';
 
@@ -29,8 +29,11 @@ const GmailSync = () => {
     const [syncing,      setSyncing]      = useState(false);
     const [syncError,    setSyncError]    = useState('');
     const [syncInfo,     setSyncInfo]     = useState('');
-    const [pending,      setPending]      = useState([]);   // ParsedTransaction[]
+    const [pending,      setPending]      = useState([]);
     const [skipped,      setSkipped]      = useState(new Set());
+    const [debugData,    setDebugData]    = useState([]);
+    const [showDebug,    setShowDebug]    = useState(false);
+    const [resetting,    setResetting]    = useState(false);
 
     // ── Connect / Disconnect ────────────────────────────────────────────────
 
@@ -51,6 +54,24 @@ const GmailSync = () => {
         setSyncInfo('');
     };
 
+    // ── Reset processed IDs ─────────────────────────────────────────────────
+    const handleReset = async () => {
+        if (!confirm('This will allow all previously scanned emails to appear again. Continue?')) return;
+        setResetting(true);
+        try {
+            const { supabase } = await import('../utils/supabaseClient');
+            await supabase.from('gmail_processed').delete().eq('user_id', user.id);
+            setDebugData([]);
+            setSyncInfo('');
+            setSyncError('');
+            setPending([]);
+        } catch (err) {
+            setSyncError('Reset failed: ' + err.message);
+        } finally {
+            setResetting(false);
+        }
+    };
+
     // ── Sync ────────────────────────────────────────────────────────────────
 
     const handleSync = async () => {
@@ -60,23 +81,21 @@ const GmailSync = () => {
         try {
             const days     = Math.max(1, Math.min(90, parseInt(daysBack) || 10));
             const messages = await fetchNewMessages(user.id, days);
-            const parsed   = parseEmails(messages);
+            const { matched, unmatched } = parseEmails(messages, true);
 
-            // Mark unmatched messages as processed so they never appear again
-            const unmatchedIds = messages
-                .filter(m => !parsed.some(p => p.messageId === m.id))
-                .map(m => m.id);
+            // Mark unmatched as processed so they never appear again
+            const unmatchedIds = unmatched.map(m => m.messageId).filter(Boolean);
             if (unmatchedIds.length) await markProcessed(user.id, unmatchedIds);
 
-            if (parsed.length === 0) {
+            setDebugData(unmatched);
+            if (matched.length === 0) {
                 setSyncInfo(`Scanned ${messages.length} email${messages.length !== 1 ? 's' : ''} — no new transactions found.`);
             } else {
-                setSyncInfo(`Found ${parsed.length} transaction${parsed.length !== 1 ? 's' : ''} to review.`);
+                setSyncInfo(`Found ${matched.length} transaction${matched.length !== 1 ? 's' : ''} to review.`);
             }
             setPending(prev => {
-                // Merge, avoiding duplicates by messageId
                 const existing = new Set(prev.map(p => p.messageId));
-                return [...prev, ...parsed.filter(p => !existing.has(p.messageId))];
+                return [...prev, ...matched.filter(p => !existing.has(p.messageId))];
             });
         } catch (err) {
             setSyncError(err.message);
@@ -96,12 +115,12 @@ const GmailSync = () => {
     const handleSave = useCallback(async (messageId, formData) => {
         try {
             await addExpense({
+                title:             formData.description,
                 amount:            formData.amount,
-                description:       formData.description,
+                description:       `Imported from Gmail (${formData.bank})`,
                 category_id:       formData.category_id || null,
                 payment_method_id: formData.payment_method_id || null,
                 transaction_date:  formData.date,
-                notes:             `Imported from Gmail (${formData.bank})`,
             });
             await markProcessed(user.id, [messageId]);
             setPending(prev => prev.filter(p => p.messageId !== messageId));
@@ -179,6 +198,14 @@ const GmailSync = () => {
                         >
                             <RefreshCw size={16} /> Sync Now
                         </Button>
+                        <Button
+                            variant="ghost"
+                            onClick={handleReset}
+                            loading={resetting}
+                            title="Re-scan emails that were already processed"
+                        >
+                            ↺ Reset
+                        </Button>
                     </div>
 
                     {!currentFamily && (
@@ -223,6 +250,35 @@ const GmailSync = () => {
                     <p>All caught up! No pending transactions.</p>
                 </Card>
             )}
+
+            {/* Debug panel — shows why emails didn't match */}
+            {debugData.length > 0 && (
+                <div className="gmail-debug-section">
+                    <button
+                        className="gmail-debug-toggle"
+                        onClick={() => setShowDebug(v => !v)}
+                    >
+                        {showDebug ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                        Debug: {debugData.length} unmatched email{debugData.length !== 1 ? 's' : ''}
+                    </button>
+                    {showDebug && (
+                        <div className="gmail-debug-list">
+                            {debugData.map((d, i) => (
+                                <div key={i} className="gmail-debug-item">
+                                    <div className="debug-from"><strong>From:</strong> {d.sender}</div>
+                                    <div className="debug-subject"><strong>Subject:</strong> {d.subject}</div>
+                                    {d.debugLog?.map((log, j) => (
+                                        <div key={j} className={`debug-pattern ${log.senderOk && log.subjectOk ? 'debug-close' : 'debug-miss'}`}>
+                                            {log.bank}: sender={log.senderOk ? '✅' : '❌'} subject={log.subjectOk ? '✅' : '❌'}
+                                            {log.failReason ? ` → ${log.failReason}` : ''}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
@@ -242,7 +298,7 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
     const [form, setForm] = useState({
         amount:            tx.amount,
         date:              tx.date,
-        description:       '',
+        description:       tx.description || '',
         category_id:       '',
         payment_method_id: guessedMethod?.id || '',
         bank:              tx.bank,

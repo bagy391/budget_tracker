@@ -1,145 +1,136 @@
 /**
  * Gmail Bank Email Parser Patterns
  * ─────────────────────────────────────────────────────────────────────────────
- * HOW TO ADD A NEW BANK:
+ * Strict sender email matching & regular expressions for extracting transaction details
+ * from official bank alert emails.
  *
- *  1. Find a sample email from that bank (sender address + body text).
- *  2. Add a new object to the PARSER_PATTERNS array below.
- *  3. Fill in the required fields: id, bank, senderMatch, patterns.amount
- *  4. Test with a real email body string using parseEmail() from parserEngine.js
- *
- * PATTERN OBJECT SHAPE:
- * {
- *   id            : string   — unique ID, e.g. 'hdfc_debit'
- *   bank          : string   — display name shown in UI
- *   senderMatch   : RegExp   — matched against the sender email address
- *   subjectMatch  : RegExp?  — optional, matched against subject line
- *   paymentType   : 'bank' | 'credit_card' | 'upi'  — pre-fills payment method
- *   patterns: {
- *     amount      : RegExp   — capture group 1 must be the numeric amount string
- *     date        : RegExp?  — capture group 1 = date string (fallback: today)
- *   }
- * }
+ * Official Bank Alert Sender Addresses:
+ * 1. Axis Bank (Bank Account)    - alerts@axis.bank.in
+ * 2. Axis Bank (Credit Card)     - alerts@axis.bank.in
+ * 3. IndusInd / Indie (Account)  - indie.alerts@indusind.com
+ * 4. ICICI Bank (Credit Card)    - credit_cards@icici.bank.in
+ * 5. HSBC Bank (Credit Card)     - hsbc@mail.hsbc.co.in
+ * 6. HDFC Bank (Credit Card)     - alerts@hdfcbank.bank.in
+ * 7. YES Bank (Credit Card)      - alerts@yes.bank.in
  */
 
 export const PARSER_PATTERNS = [
 
-    // ── HDFC Bank ──────────────────────────────────────────────────────────
-    {
-        id: 'hdfc_debit',
-        bank: 'HDFC Bank',
-        senderMatch: /hdfcbank/i,
-        subjectMatch: /alert|transaction|debited/i,
-        paymentType: 'bank',
-        patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on (\d{1,2}[- /]\w+[- /]\d{2,4})/i,
-        }
-    },
-    {
-        id: 'hdfc_credit_card',
-        bank: 'HDFC Credit Card',
-        senderMatch: /hdfcbank/i,
-        subjectMatch: /credit card|cc alert/i,
-        paymentType: 'credit_card',
-        patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on (\d{1,2}[- /]\w+[- /]\d{2,4})/i,
-        }
-    },
+    // ════════════════════════════════════════════════════════════
+    //  BANK ACCOUNT (DEBIT) TRANSACTIONS
+    // ════════════════════════════════════════════════════════════
 
-    // ── ICICI Bank ─────────────────────────────────────────────────────────
+    // ── Axis Bank (Bank Account Debit) ─────────────────────────────────────
     {
-        id: 'icici_debit',
-        bank: 'ICICI Bank',
-        senderMatch: /icicibank|alerts@icici/i,
-        paymentType: 'bank',
-        patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on (\d{2}-\w{3}-\d{4})/i,
-        }
-    },
-    {
-        id: 'icici_credit_card',
-        bank: 'ICICI Credit Card',
-        senderMatch: /icicibank/i,
-        subjectMatch: /credit card/i,
-        paymentType: 'credit_card',
-        patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on (\d{2}-\w{3}-\d{4})/i,
-        }
-    },
-
-    // ── SBI ────────────────────────────────────────────────────────────────
-    {
-        id: 'sbi_debit',
-        bank: 'SBI',
-        senderMatch: /sbi\.co\.in|sbibank/i,
-        paymentType: 'bank',
-        patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(\d{2}\/\d{2}\/\d{4})/i,
-        }
-    },
-
-    // ── Axis Bank ──────────────────────────────────────────────────────────
-    {
-        id: 'axis_debit',
+        id: 'axis_bank_account',
         bank: 'Axis Bank',
-        senderMatch: /axisbank/i,
+        senderMatch: /alerts@axis\.bank\.in/i,
+        subjectMatch: /debited|A\/c|account/i,
         paymentType: 'bank',
         patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on (\d{2}[- /]\d{2}[- /]\d{4})/i,
+            amount: /(?:Amount Debited:|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
+            date:   /(?:Date & Time:\s*)?(\d{2}-\d{2}-\d{2,4})/i,
+            merchant: /Transaction Info:\s*(?:UPI\/[^\/]+\/[^\/]+\/)?([^\n\r]+)/i,
         }
     },
+
+    // ── IndusInd / Indie Bank (Bank Account Debit) ─────────────────────────
+    {
+        id: 'indusind_bank',
+        bank: 'IndusInd Bank',
+        senderMatch: /indie\.alerts@indusind\.com/i,
+        paymentType: 'bank',
+        patterns: {
+            amount: /(?:Bill Amount \([^)]+\):|Rs\.?|INR)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
+            date:   /(\d{2}[-\/]\d{2}[-\/]\d{2,4}|\d{1,2}\s+\w{3},?\s+\d{4})/i,
+            merchant: /Biller Name:\s*([^\n\r]+)/i,
+        }
+    },
+
+    // ════════════════════════════════════════════════════════════
+    //  CREDIT CARD TRANSACTIONS
+    // ════════════════════════════════════════════════════════════
+
+    // ── Axis Bank (Credit Card Spend) ──────────────────────────────────────
     {
         id: 'axis_credit_card',
-        bank: 'Axis Credit Card',
-        senderMatch: /axisbank/i,
-        subjectMatch: /credit card/i,
+        bank: 'Axis Bank',
+        senderMatch: /alerts@axis\.bank\.in/i,
+        subjectMatch: /spent|credit card/i,
         paymentType: 'credit_card',
         patterns: {
-            amount: /(?:Rs\.?|INR|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on (\d{2}[- /]\d{2}[- /]\d{4})/i,
+            amount: /(?:Transaction Amount:|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
+            date:   /(?:Date & Time:\s*)?(\d{2}-\d{2}-\d{4})/i,
+            merchant: /Merchant Name:\s*([^\n\r]+)/i,
         }
     },
 
-    // ── Kotak Mahindra Bank ────────────────────────────────────────────────
+    // ── ICICI Bank (Credit Card) ───────────────────────────────────────────
     {
-        id: 'kotak_debit',
-        bank: 'Kotak Bank',
-        senderMatch: /kotak/i,
-        paymentType: 'bank',
+        id: 'icici_credit_card',
+        bank: 'ICICI Bank',
+        senderMatch: /credit_cards@icici\.bank\.in/i,
+        paymentType: 'credit_card',
         patterns: {
-            amount: /(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(\d{2}-\w{3}-\d{4})/i,
+            amount: /(?:transaction of|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
+            date:   /on\s+(\w{3}\s+\d{1,2},\s*\d{4})/i,
+            merchant: /Info:\s*([^.\n\r]+)/i,
         }
     },
 
-    // ── YES Bank ───────────────────────────────────────────────────────────
+    // ── HSBC Bank (Credit Card) ────────────────────────────────────────────
     {
-        id: 'yes_bank_debit',
+        id: 'hsbc_credit_card',
+        bank: 'HSBC Bank',
+        senderMatch: /hsbc@mail\.hsbc\.co\.in/i,
+        paymentType: 'credit_card',
+        patterns: {
+            amount: /(?:used for|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
+            date:   /on\s+(\d{1,2}\s+\w{3}\s+\d{4})/i,
+            merchant: /payment to\s+([^\n\r]+?)\s+on\s+\d/i,
+        }
+    },
+
+    // ── HDFC Bank (Credit Card) ────────────────────────────────────────────
+    {
+        id: 'hdfc_credit_card',
+        bank: 'HDFC Bank',
+        senderMatch: /alerts@hdfcbank\.bank\.in/i,
+        paymentType: 'credit_card',
+        patterns: {
+            amount: /(?:Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)\s*has been debited/i,
+            date:   /on\s+(\d{1,2}\s+\w{3},?\s+\d{4})/i,
+            merchant: /towards\s+([^\n\r]+?)\s+on\s+\d/i,
+        }
+    },
+
+    // ── YES Bank (Credit Card) ─────────────────────────────────────────────
+    {
+        id: 'yes_bank_credit_card',
         bank: 'YES Bank',
-        senderMatch: /yesbank/i,
-        paymentType: 'bank',
+        senderMatch: /alerts@yes\.bank\.in/i,
+        paymentType: 'credit_card',
         patterns: {
-            amount: /(?:INR|Rs\.?|₹)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(\d{2}[- /]\d{2}[- /]\d{4})/i,
+            amount: /(?:INR|Rs\.?)\s*([\d,]+(?:\.\d{1,2})?)\s*has been spent/i,
+            date:   /on\s+(\d{2}-\d{2}-\d{4})/i,
+            merchant: /at\s+([^\n\r]+?)\s+on\s+\d/i,
         }
     },
+
+    // ════════════════════════════════════════════════════════════
+    //  UPI / OTHER
+    // ════════════════════════════════════════════════════════════
 
     // ── GPay (Google Pay UPI) ──────────────────────────────────────────────
     {
         id: 'gpay_upi',
         bank: 'Google Pay',
-        senderMatch: /google|gpay/i,
+        senderMatch: /googlepay-noreply@google\.com|gpay/i,
         subjectMatch: /paid|payment|upi/i,
         paymentType: 'upi',
         patterns: {
             amount: /(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(\w{3} \d{1,2},?\s*\d{4})/i,
+            date:   /(\w{3}\s+\d{1,2},?\s*\d{4})/i,
         }
     },
 
@@ -147,7 +138,7 @@ export const PARSER_PATTERNS = [
     {
         id: 'phonepe_upi',
         bank: 'PhonePe',
-        senderMatch: /phonepe/i,
+        senderMatch: /noreply@phonepe\.com|phonepe/i,
         paymentType: 'upi',
         patterns: {
             amount: /(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/i,
@@ -159,7 +150,7 @@ export const PARSER_PATTERNS = [
     {
         id: 'paytm_upi',
         bank: 'Paytm',
-        senderMatch: /paytm/i,
+        senderMatch: /no-reply@paytm\.com|paytm/i,
         paymentType: 'upi',
         patterns: {
             amount: /(?:₹|Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)/i,
