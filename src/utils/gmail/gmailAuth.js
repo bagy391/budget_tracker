@@ -31,10 +31,14 @@ function logDiag(msg, data = null) {
  * @param {function} onError   - Callback when error occurs (receives Error object)
  */
 export function connectGmail(onSuccess, onError) {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (clientId) {
+        clientId = clientId.trim().replace(/^[\s\t]+|[\s\t]+$/g, '');
+    }
+
     logDiag('Initiating connectGmail', {
         clientIdConfigured: Boolean(clientId),
-        clientIdPrefix: clientId ? clientId.slice(0, 12) + '...' : 'MISSING',
+        clientIdPrefix: clientId ? clientId.slice(0, 16) + '...' : 'MISSING',
         origin: typeof window !== 'undefined' ? window.location.origin : '',
         gisLoaded: typeof window !== 'undefined' && Boolean(window.google?.accounts?.oauth2),
     });
