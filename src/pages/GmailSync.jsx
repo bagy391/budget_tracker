@@ -5,6 +5,7 @@ import Card    from '../components/common/Card';
 import Button  from '../components/common/Button';
 import Input   from '../components/common/Input';
 import Select  from '../components/common/Select';
+import DynamicIcon from '../components/common/DynamicIcon';
 import { connectGmail, disconnectGmail, isGmailConnected, getDiagLogs } from '../utils/gmail/gmailAuth';
 import { fetchNewMessages, markProcessed } from '../utils/gmail/gmailClient';
 import { parseEmails } from '../utils/gmail/parserEngine';
@@ -457,14 +458,16 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
         setSaving(false);
     };
 
-    const categoryOptions = [
-        { value: '', label: 'Select category…' },
-        ...categories.map(c => ({ value: c.id, label: `${c.icon || ''} ${c.name}` })),
-    ];
-    const paymentOptions = [
-        { value: '', label: 'Select payment method…' },
-        ...paymentMethods.map(pm => ({ value: pm.id, label: pm.name })),
-    ];
+    const categoryOptions = categories.map(c => ({
+        value: c.id,
+        label: c.name,
+        icon:  <DynamicIcon name={c.icon} size={16} />,
+    }));
+    const paymentOptions = paymentMethods.map(pm => ({
+        value: pm.id,
+        label: pm.name,
+        icon:  pm.type === 'credit_card' ? <CreditCard size={16} /> : pm.type === 'upi' ? <Wallet size={16} /> : <Banknote size={16} />,
+    }));
 
     return (
         <Card className="gmail-pending-card">
@@ -493,30 +496,20 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
                     />
                 </div>
                 <div className="pending-form-row two-col">
-                    <div>
-                        <label className="pending-field-label">Category</label>
-                        <select
-                            className="pending-select"
-                            value={form.category_id}
-                            onChange={e => set('category_id', e.target.value)}
-                        >
-                            {categoryOptions.map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="pending-field-label">Payment Method</label>
-                        <select
-                            className="pending-select"
-                            value={form.payment_method_id}
-                            onChange={e => set('payment_method_id', e.target.value)}
-                        >
-                            {paymentOptions.map(o => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
-                    </div>
+                    <Select
+                        label="Category"
+                        value={form.category_id}
+                        onChange={val => set('category_id', val)}
+                        options={categoryOptions}
+                        placeholder="Select category…"
+                    />
+                    <Select
+                        label="Payment Method"
+                        value={form.payment_method_id}
+                        onChange={val => set('payment_method_id', val)}
+                        options={paymentOptions}
+                        placeholder="Select payment method…"
+                    />
                 </div>
                 <div className="pending-form-row two-col">
                     <div>
