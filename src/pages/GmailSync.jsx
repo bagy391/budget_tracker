@@ -36,6 +36,18 @@ const GmailSync = () => {
     const [showDebug,    setShowDebug]    = useState(false);
     const [resetting,    setResetting]    = useState(false);
 
+    // Auto-check connection when user returns focus to window after popup
+    useEffect(() => {
+        const handleFocus = () => {
+            if (isGmailConnected()) {
+                setConnected(true);
+                setSyncError('');
+            }
+        };
+        window.addEventListener('focus', handleFocus);
+        return () => window.removeEventListener('focus', handleFocus);
+    }, []);
+
     // ── Connect / Disconnect ────────────────────────────────────────────────
 
     const handleConnect = () => {

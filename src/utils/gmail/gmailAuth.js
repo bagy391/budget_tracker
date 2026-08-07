@@ -40,10 +40,22 @@ export function connectGmail(onSuccess, onError) {
                 if (onError) onError(new Error(err.message || `Google Auth Error: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
             },
             callback: (response) => {
-                if (response.error) {
+                console.log('Google OAuth callback response:', response);
+
+                // 1. If access_token is present, authorization succeeded!
+                if (response && response.access_token) {
+                    const expiry = Date.now() + (response.expires_in * 1000);
+                    localStorage.setItem(TOKEN_KEY, response.access_token);
+                    localStorage.setItem(EXPIRY_KEY, String(expiry));
+                    if (onSuccess) onSuccess(response.access_token);
+                    return;
+                }
+
+                // 2. Only if access_token is missing, handle error
+                if (response && response.error) {
                     let msg = `Google OAuth error: ${response.error}`;
                     if (response.error === 'popup_closed_by_user') {
-                        msg = `Popup closed. If it closed immediately, check Google Cloud Console: 1) Is ${window.location.origin} under Authorized JavaScript Origins? 2) Is your email in Test Users (or App Published)?`;
+                        msg = 'Sign-in popup closed before authorization was completed.';
                     } else if (response.error === 'access_denied') {
                         msg = 'Access denied. Permission to read Gmail was not granted.';
                     } else if (response.error === 'origin_mismatch') {
@@ -53,16 +65,7 @@ export function connectGmail(onSuccess, onError) {
                     return;
                 }
 
-                if (!response.access_token) {
-                    if (onError) onError(new Error('No access token returned from Google.'));
-                    return;
-                }
-
-                // Store token + expiry
-                const expiry = Date.now() + (response.expires_in * 1000);
-                localStorage.setItem(TOKEN_KEY, response.access_token);
-                localStorage.setItem(EXPIRY_KEY, String(expiry));
-                if (onSuccess) onSuccess(response.access_token);
+                if (onError) onError(new Error('No access token returned from Google.'));
             },
         });
 
