@@ -5,9 +5,10 @@
  * Includes detailed diagnostic logging for debugging deployment environments.
  */
 
-const GMAIL_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
-const TOKEN_KEY   = 'gmail_access_token';
-const EXPIRY_KEY  = 'gmail_token_expiry';
+const GMAIL_SCOPE    = 'https://www.googleapis.com/auth/gmail.readonly';
+const TOKEN_KEY      = 'gmail_access_token';
+const EXPIRY_KEY     = 'gmail_token_expiry';
+const CONNECTED_KEY  = 'gmail_user_connected';
 
 // Diagnostic logger array
 if (typeof window !== 'undefined') {
@@ -25,90 +26,125 @@ function logDiag(msg, data = null) {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Trigger Google OAuth popup synchronously in response to user click.
+ * Connect to Google OAuth.
  *
- * @param {function} onSuccess - Callback when token is acquired (receives token string)
- * @param {function} onError   - Callback when error occurs (receives Error object)
+ * @param {function} onSuccess - Callback when token is acquired
+ * @param {function} onError   - Callback on error
+ * @param {object}   options   - { prompt: 'consent' | '' }
  */
-export function connectGmail(onSuccess, onError) {
+export function connectGmail(onSuccess, onError, options = {}) {
     let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (clientId) {
         clientId = clientId.trim().replace(/^[\s\t]+|[\s\t]+$/g, '');
     }
 
-    logDiag('Initiating connectGmail', {
+    const isSilent = options.prompt === '';
+
+    logDiag(`Initiating connectGmail (${isSilent ? 'Silent' : 'Interactive'})`, {
         clientIdConfigured: Boolean(clientId),
-        clientIdPrefix: clientId ? clientId.slice(0, 16) + '...' : 'MISSING',
         origin: typeof window !== 'undefined' ? window.location.origin : '',
         gisLoaded: typeof window !== 'undefined' && Boolean(window.google?.accounts?.oauth2),
     });
 
     if (!clientId) {
-        const err = new Error('VITE_GOOGLE_CLIENT_ID is not set in Vercel Environment Variables. Please add it in Vercel Project Settings and redeploy.');
+        const err = new Error('VITE_GOOGLE_CLIENT_ID is missing in build environment.');
         logDiag('ERROR: Client ID missing');
         if (onError) onError(err);
         return;
     }
 
-    // Ensure GIS library is loaded
     if (!window.google?.accounts?.oauth2) {
-        const err = new Error('Google Identity Services library not loaded. Please refresh the page or check your internet/adblocker.');
+        const err = new Error('Google Identity Services library not loaded. Please refresh the page.');
         logDiag('ERROR: GIS script not loaded');
         if (onError) onError(err);
         return;
     }
 
     try {
-        logDiag('Initializing initTokenClient');
         const client = window.google.accounts.oauth2.initTokenClient({
             client_id: clientId,
             scope: GMAIL_SCOPE,
             error_callback: (err) => {
                 logDiag('GIS error_callback fired', err);
-                if (onError) onError(new Error(err.message || `Google Auth Error: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`));
+                if (isSilent) {
+                    // Silent refresh failed, reset connected state
+                    localStorage.removeItem(CONNECTED_KEY);
+                }
+                if (onError) onError(new Error(err.message || 'Google Auth Error'));
             },
             callback: (response) => {
                 logDiag('GIS callback fired', response);
 
-                // 1. If access_token is present, authorization succeeded!
                 if (response && response.access_token) {
                     const expiry = Date.now() + (response.expires_in * 1000);
                     localStorage.setItem(TOKEN_KEY, response.access_token);
                     localStorage.setItem(EXPIRY_KEY, String(expiry));
-                    logDiag('SUCCESS: Token acquired & saved to localStorage', {
+                    localStorage.setItem(CONNECTED_KEY, 'true');
+
+                    logDiag('SUCCESS: Token acquired & saved', {
                         expiresInSeconds: response.expires_in,
                         tokenPrefix: response.access_token.slice(0, 10) + '...',
                     });
+
                     if (onSuccess) onSuccess(response.access_token);
                     return;
                 }
 
-                // 2. Only if access_token is missing, handle error
                 if (response && response.error) {
+                    if (isSilent) {
+                        localStorage.removeItem(CONNECTED_KEY);
+                    }
                     let msg = `Google OAuth error: ${response.error}`;
                     if (response.error === 'popup_closed_by_user') {
                         msg = 'Sign-in popup closed before authorization was completed.';
                     } else if (response.error === 'access_denied') {
                         msg = 'Access denied. Permission to read Gmail was not granted.';
-                    } else if (response.error === 'origin_mismatch') {
-                        msg = `Origin Mismatch: Please add ${window.location.origin} to Authorized JavaScript Origins in Google Cloud Console.`;
                     }
-                    logDiag('ERROR in GIS callback', { error: response.error, description: response.error_description });
+                    logDiag('ERROR in GIS callback', { error: response.error });
                     if (onError) onError(new Error(msg));
                     return;
                 }
 
-                logDiag('ERROR: Neither token nor error in callback response', response);
                 if (onError) onError(new Error('No access token returned from Google.'));
             },
         });
 
-        logDiag('Calling client.requestAccessToken()');
-        client.requestAccessToken();
+        logDiag(`Calling requestAccessToken(prompt: "${options.prompt || 'consent'}")`);
+        client.requestAccessToken(options.prompt !== undefined ? { prompt: options.prompt } : {});
     } catch (err) {
         logDiag('EXCEPTIONAL ERROR in connectGmail', err);
         if (onError) onError(new Error(err.message || 'Failed to initialize Google login.'));
     }
+}
+
+/**
+ * Ensures a valid token exists. If expired but user previously connected,
+ * automatically performs a silent token refresh without showing a popup.
+ */
+export function ensureValidToken() {
+    return new Promise((resolve, reject) => {
+        const token = getStoredToken();
+        if (token) {
+            resolve(token);
+            return;
+        }
+
+        const wasConnected = localStorage.getItem(CONNECTED_KEY) === 'true';
+        if (!wasConnected) {
+            reject(new Error('Gmail not connected. Please click Connect Gmail.'));
+            return;
+        }
+
+        logDiag('Token expired/missing, attempting silent auto-refresh...');
+        connectGmail(
+            (freshToken) => resolve(freshToken),
+            (err) => {
+                logDiag('Silent auto-refresh failed', err.message);
+                reject(new Error('Session expired. Please reconnect Gmail.'));
+            },
+            { prompt: '' } // silent refresh
+        );
+    });
 }
 
 /**
@@ -129,14 +165,14 @@ export function getStoredToken() {
 }
 
 /**
- * Returns true if Gmail is currently connected with a valid token.
+ * Returns true if Gmail is currently connected or marked as connected.
  */
 export function isGmailConnected() {
-    return getStoredToken() !== null;
+    return getStoredToken() !== null || localStorage.getItem(CONNECTED_KEY) === 'true';
 }
 
 /**
- * Revoke the stored token and clear local storage.
+ * Revoke the stored token and clear connection state.
  */
 export function disconnectGmail() {
     logDiag('Disconnecting Gmail and revoking token');
@@ -146,4 +182,5 @@ export function disconnectGmail() {
     }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(EXPIRY_KEY);
+    localStorage.removeItem(CONNECTED_KEY);
 }

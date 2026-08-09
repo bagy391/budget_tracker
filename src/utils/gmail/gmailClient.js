@@ -4,7 +4,7 @@
  * Uses the access token from gmailAuth.js.
  */
 
-import { getStoredToken } from './gmailAuth';
+import { ensureValidToken } from './gmailAuth';
 import { supabase }       from '../supabaseClient';
 
 const GMAIL_BASE = 'https://gmail.googleapis.com/gmail/v1/users/me';
@@ -30,7 +30,7 @@ export async function markProcessed(userId, messageIds) {
 // ── Core fetch helpers ──────────────────────────────────────────────────────
 
 async function gmailFetch(path, params = {}) {
-    const token = getStoredToken();
+    const token = await ensureValidToken();
     if (!token) throw new Error('Gmail not connected');
 
     const url = new URL(`${GMAIL_BASE}${path}`);
