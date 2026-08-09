@@ -29,7 +29,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'bank',
         patterns: {
             amount: /(?:Amount Debited:|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(?:Date & Time:\s*)?(\d{2}-\d{2}-\d{2,4})/i,
+            date:   /(\d{2}-\d{2}-\d{2,4}(?:,\s*\d{2}:\d{2}(?::\d{2})?)?)/i,
             merchant: /Transaction Info:\s*(?:UPI\/[^\/]+\/[^\/]+\/)?([^\n\r]+)/i,
         }
     },
@@ -42,7 +42,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'bank',
         patterns: {
             amount: /(?:Bill Amount \([^)]+\):|Rs\.?|INR)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(\d{2}[-\/]\d{2}[-\/]\d{2,4}|\d{1,2}\s+\w{3},?\s+\d{4})/i,
+            date:   /(\d{2}[-\/]\d{2}[-\/]\d{2,4}(?:\s+\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}\s+\w{3},?\s+\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?)/i,
             merchant: /Biller Name:\s*([^\n\r]+)/i,
         }
     },
@@ -60,7 +60,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'credit_card',
         patterns: {
             amount: /(?:Transaction Amount:|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(?:Date & Time:\s*)?(\d{2}-\d{2}-\d{4})/i,
+            date:   /(\d{2}-\d{2}-\d{4}(?:,\s*\d{2}:\d{2}(?::\d{2})?)?)/i,
             merchant: /Merchant Name:\s*([^\n\r]+)/i,
         }
     },
@@ -73,7 +73,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'credit_card',
         patterns: {
             amount: /(?:transaction of|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on\s+(\w{3}\s+\d{1,2},\s*\d{4})/i,
+            date:   /(\w{3}\s+\d{1,2},\s*\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?)/i,
             merchant: /Info:\s*([^.\n\r]+)/i,
         }
     },
@@ -86,7 +86,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'credit_card',
         patterns: {
             amount: /(?:used for|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /on\s+(\d{1,2}\s+\w{3}\s+\d{4})/i,
+            date:   /(\d{1,2}\s+\w{3}\s+\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?)/i,
             merchant: /payment to\s+([^\n\r]+?)\s+on\s+\d/i,
         }
     },
@@ -99,7 +99,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'credit_card',
         patterns: {
             amount: /(?:Rs\.?|INR)\s*([\d,]+(?:\.\d{1,2})?)\s*has been debited/i,
-            date:   /on\s+(\d{1,2}\s+\w{3},?\s+\d{4})/i,
+            date:   /(\d{1,2}\s+\w{3},?\s+\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?)/i,
             merchant: /towards\s+([^\n\r]+?)\s+on\s+\d/i,
         }
     },
@@ -112,7 +112,7 @@ export const PARSER_PATTERNS = [
         paymentType: 'credit_card',
         patterns: {
             amount: /(?:INR|Rs\.?)\s*([\d,]+(?:\.\d{1,2})?)\s*has been spent/i,
-            date:   /on\s+(\d{2}-\d{2}-\d{4})/i,
+            date:   /(\d{2}-\d{2}-\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)?)/i,
             merchant: /at\s+([^\n\r]+?)\s+on\s+\d/i,
         }
     },

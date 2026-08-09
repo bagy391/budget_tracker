@@ -218,7 +218,7 @@ const GmailSync = () => {
                 description:       `Imported from Gmail (${formData.bank})`,
                 category_id:       formData.category_id || null,
                 payment_method_id: formData.payment_method_id || null,
-                transaction_date:  formData.date,
+                transaction_date:  new Date(formData.date).toISOString(),
             });
             await markProcessed(user.id, [messageId]);
             setPending(prev => prev.filter(p => p.messageId !== messageId));
@@ -480,7 +480,19 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
                 <span className="pending-amount">₹{tx.amount.toLocaleString('en-IN')}</span>
             </div>
 
-            <div className="pending-date">{tx.date}</div>
+            <div className="pending-date">
+                {(() => {
+                    try {
+                        const d = new Date(tx.date);
+                        return d.toLocaleString('en-IN', {
+                            day: '2-digit', month: 'short', year: 'numeric',
+                            hour: '2-digit', minute: '2-digit', hour12: true
+                        });
+                    } catch (_) {
+                        return tx.date;
+                    }
+                })()}
+            </div>
 
             {/* Email snippet */}
             <div className="pending-snippet">{tx.rawSnippet}</div>
@@ -523,9 +535,9 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
                         />
                     </div>
                     <div>
-                        <label className="pending-field-label">Date</label>
+                        <label className="pending-field-label">Date & Time</label>
                         <input
-                            type="date"
+                            type="datetime-local"
                             className="pending-input"
                             value={form.date}
                             onChange={e => set('date', e.target.value)}

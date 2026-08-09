@@ -77,13 +77,13 @@ export function parseEmail(message, debug = false) {
             continue;
         }
 
-        // 4. Extract date
-        let transactionDate = date || new Date().toISOString().split('T')[0];
+        // 4. Extract date & time
+        let transactionDate = tryParseDateTime('', date);
         if (pattern.patterns.date) {
             const dateMatch = normBody.match(pattern.patterns.date)
                 || subject.match(pattern.patterns.date);
             if (dateMatch) {
-                const parsed = tryParseDate(dateMatch[1]);
+                const parsed = tryParseDateTime(dateMatch[1], date);
                 if (parsed) transactionDate = parsed;
             }
         }
@@ -137,45 +137,106 @@ export function parseEmails(messages, debug = false) {
     return debug ? { matched, unmatched } : { matched, unmatched: [] };
 }
 
-// ── Date parsing helpers ────────────────────────────────────────────────────
+// ── Date & Time parsing helpers ──────────────────────────────────────────────
 
 const MONTH_MAP = {
     jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
     jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
 };
 
-function tryParseDate(str) {
-    if (!str) return null;
+function tryParseDateTime(str, fallbackIsoDate) {
+    let fallbackHHMM = '12:00';
+    let fallbackYYYYMMDD = null;
+
+    if (fallbackIsoDate) {
+        try {
+            const fb = new Date(fallbackIsoDate);
+            if (!isNaN(fb.getTime())) {
+                const yyyy = fb.getFullYear();
+                const mm = String(fb.getMonth() + 1).padStart(2, '0');
+                const dd = String(fb.getDate()).padStart(2, '0');
+                const hh = String(fb.getHours()).padStart(2, '0');
+                const min = String(fb.getMinutes()).padStart(2, '0');
+                fallbackHHMM = `${hh}:${min}`;
+                fallbackYYYYMMDD = `${yyyy}-${mm}-${dd}`;
+            }
+        } catch (_) {}
+    }
+
+    if (!str) {
+        if (fallbackYYYYMMDD) return `${fallbackYYYYMMDD}T${fallbackHHMM}`;
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
+
     str = str.trim();
+
+    // Extract time from string if present (e.g. 13:20:13 or 03:37:01 pm or 21:56)
+    let timeStr = fallbackHHMM;
+    const timeMatch = str.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (timeMatch) {
+        let hours = parseInt(timeMatch[1], 10);
+        const minutes = String(timeMatch[2]).padStart(2, '0');
+        const ampm = timeMatch[4] ? timeMatch[4].toLowerCase() : null;
+
+        if (ampm === 'pm' && hours < 12) hours += 12;
+        if (ampm === 'am' && hours === 12) hours = 0;
+
+        timeStr = `${String(hours).padStart(2, '0')}:${minutes}`;
+    }
+
+    // Extract Date part
+    let dateStr = null;
 
     // DD-Mon-YYYY or DD/Mon/YYYY  e.g. "05-Aug-2026"
     const dmy_mon = str.match(/(\d{1,2})[- /](\w{3,})[- /](\d{4})/);
     if (dmy_mon) {
         const mon = MONTH_MAP[dmy_mon[2].slice(0, 3).toLowerCase()];
-        if (mon) return `${dmy_mon[3]}-${mon}-${dmy_mon[1].padStart(2, '0')}`;
+        if (mon) dateStr = `${dmy_mon[3]}-${mon}-${dmy_mon[1].padStart(2, '0')}`;
     }
 
     // DD Mon YYYY or DD Mon, YYYY  e.g. "14 Jul, 2026" or "02 Aug 2026"
-    const dmy_str = str.match(/(\d{1,2})\s+(\w{3,}),?\s+(\d{4})/);
-    if (dmy_str) {
-        const mon = MONTH_MAP[dmy_str[2].slice(0, 3).toLowerCase()];
-        if (mon) return `${dmy_str[3]}-${mon}-${dmy_str[1].padStart(2, '0')}`;
+    if (!dateStr) {
+        const dmy_str = str.match(/(\d{1,2})\s+(\w{3,}),?\s+(\d{4})/);
+        if (dmy_str) {
+            const mon = MONTH_MAP[dmy_str[2].slice(0, 3).toLowerCase()];
+            if (mon) dateStr = `${dmy_str[3]}-${mon}-${dmy_str[1].padStart(2, '0')}`;
+        }
     }
 
     // Mon DD, YYYY  e.g. "Aug 07, 2026"
-    const mdy = str.match(/(\w{3,})\s+(\d{1,2}),?\s*(\d{4})/);
-    if (mdy) {
-        const mon = MONTH_MAP[mdy[1].slice(0, 3).toLowerCase()];
-        if (mon) return `${mdy[3]}-${mon}-${mdy[2].padStart(2, '0')}`;
+    if (!dateStr) {
+        const mdy = str.match(/(\w{3,})\s+(\d{1,2}),?\s*(\d{4})/);
+        if (mdy) {
+            const mon = MONTH_MAP[mdy[1].slice(0, 3).toLowerCase()];
+            if (mon) dateStr = `${mdy[3]}-${mon}-${mdy[2].padStart(2, '0')}`;
+        }
     }
 
     // DD-MM-YYYY or DD/MM/YYYY  e.g. "07-08-2026"
-    const dmy_num = str.match(/(\d{2})[- /](\d{2})[- /](\d{4})/);
-    if (dmy_num) return `${dmy_num[3]}-${dmy_num[2]}-${dmy_num[1]}`;
+    if (!dateStr) {
+        const dmy_num = str.match(/(\d{2})[- /](\d{2})[- /](\d{4})/);
+        if (dmy_num) dateStr = `${dmy_num[3]}-${dmy_num[2]}-${dmy_num[1]}`;
+    }
 
     // DD-MM-YY  e.g. "04-08-26"
-    const dmy_short = str.match(/(\d{2})[- /](\d{2})[- /](\d{2})$/);
-    if (dmy_short) return `20${dmy_short[3]}-${dmy_short[2]}-${dmy_short[1]}`;
+    if (!dateStr) {
+        const dmy_short = str.match(/(\d{2})[- /](\d{2})[- /](\d{2})/);
+        if (dmy_short) dateStr = `20${dmy_short[3]}-${dmy_short[2]}-${dmy_short[1]}`;
+    }
+
+    if (dateStr) {
+        return `${dateStr}T${timeStr}`;
+    }
+
+    if (fallbackYYYYMMDD) {
+        return `${fallbackYYYYMMDD}T${timeStr}`;
+    }
 
     return null;
 }

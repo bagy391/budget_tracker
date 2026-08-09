@@ -147,10 +147,10 @@ export async function fetchNewMessages(userId, daysBack = 1) {
     return results.map(msg => {
         const headers = msg.payload?.headers || [];
         const dateStr = getHeader(headers, 'date');
-        let date = new Date().toISOString().split('T')[0];
+        let date = new Date().toISOString();
         if (dateStr) {
             const d = new Date(dateStr);
-            if (!isNaN(d)) date = d.toISOString().split('T')[0];
+            if (!isNaN(d)) date = d.toISOString();
         }
         return {
             id:      msg.id,
