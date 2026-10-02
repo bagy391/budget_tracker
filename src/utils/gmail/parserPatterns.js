@@ -9,7 +9,7 @@
  * 2. Axis Bank (Credit Card)     - alerts@axis.bank.in
  * 3. IndusInd / Indie (Account)  - indie.alerts@indusind.com
  * 4. ICICI Bank (Credit Card)    - credit_cards@icici.bank.in
- * 5. HSBC Bank (Credit Card)     - hsbc@mail.hsbc.co.in
+ * 5. HSBC Bank (Credit Card)     - hsbc@mail.hsbc.co.in / hsbc@hsbc.bank.in
  * 6. HDFC Bank (Credit Card)     - alerts@hdfcbank.bank.in
  * 7. YES Bank (Credit Card)      - alerts@yes.bank.in
  */
@@ -82,12 +82,13 @@ export const PARSER_PATTERNS = [
     {
         id: 'hsbc_credit_card',
         bank: 'HSBC Bank',
-        senderMatch: /hsbc@mail\.hsbc\.co\.in/i,
+        senderMatch: /hsbc@(?:mail\.hsbc\.co\.in|hsbc\.bank\.in)/i,
+        subjectMatch: /Credit Card|Transaction|Alert/i,
         paymentType: 'credit_card',
         patterns: {
-            amount: /(?:used for|INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
-            date:   /(\d{1,2}\s+\w{3}\s+\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?)/i,
-            merchant: /payment to\s+([^\n\r]+?)\s+on\s+\d/i,
+            amount: /(?:transaction of|used for)?\s*(?:INR|Rs\.?)\s*:?\s*([\d,]+(?:\.\d{1,2})?)/i,
+            date:   /(\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?|\d{1,2}\s+\w{3,}\s+\d{2,4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?)?)/i,
+            merchant: /\b(?:at|payment to)\s+([^\n\r]+?)\s+on\s+\d/i,
         }
     },
 

@@ -62,6 +62,15 @@ export function parseEmail(message, debug = false) {
             continue;
         }
 
+        // 3. Skip OTP / Verification emails
+        const isOtpEmail =
+            /\b(?:OTP|One Time Password)\b/i.test(subject) ||
+            /\b(?:is your OTP|your OTP is|One Time Password|secret OTP|use OTP|enter OTP)\b/i.test(normBody);
+        if (isOtpEmail) {
+            if (debug) currentLog.failReason = 'OTP email ignored';
+            continue;
+        }
+
         // 3. Extract amount
         const amountMatch = normBody.match(pattern.patterns.amount)
             || subject.match(pattern.patterns.amount);

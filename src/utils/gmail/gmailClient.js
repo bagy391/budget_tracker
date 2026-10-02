@@ -30,7 +30,7 @@ export async function markProcessed(userId, messageIds) {
 // ── Core fetch helpers ──────────────────────────────────────────────────────
 
 async function gmailFetch(path, params = {}) {
-    const token = await ensureValidToken();
+    const token = await ensureValidToken(true);
     if (!token) throw new Error('Gmail not connected');
 
     const url = new URL(`${GMAIL_BASE}${path}`);
@@ -121,7 +121,7 @@ export async function fetchNewMessages(userId, daysBack = 1) {
 
     // Fetch all bank emails by searching for bank names in from/subject/body
     const listData = await gmailFetch('/messages', {
-        q: `after:${afterDateStr} (from:indie.alerts@indusind.com OR from:alerts@axis.bank.in OR from:credit_cards@icici.bank.in OR from:hsbc@mail.hsbc.co.in OR from:alerts@hdfcbank.bank.in OR from:alerts@yes.bank.in OR from:googlepay-noreply@google.com OR from:noreply@phonepe.com OR from:no-reply@paytm.com)`,
+        q: `after:${afterDateStr} (from:indie.alerts@indusind.com OR from:alerts@axis.bank.in OR from:credit_cards@icici.bank.in OR from:hsbc@mail.hsbc.co.in OR from:hsbc@hsbc.bank.in OR from:alerts@hdfcbank.bank.in OR from:alerts@yes.bank.in OR from:googlepay-noreply@google.com OR from:noreply@phonepe.com OR from:no-reply@paytm.com)`,
         maxResults: 100,
     });
 

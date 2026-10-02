@@ -109,8 +109,9 @@ export function connectGmail(onSuccess, onError, options = {}) {
             },
         });
 
-        logDiag(`Calling requestAccessToken(prompt: "${options.prompt || 'consent'}")`);
-        client.requestAccessToken(options.prompt !== undefined ? { prompt: options.prompt } : {});
+        const targetPrompt = options.prompt !== undefined ? options.prompt : 'select_account';
+        logDiag(`Calling requestAccessToken(prompt: "${targetPrompt}")`);
+        client.requestAccessToken({ prompt: targetPrompt });
     } catch (err) {
         logDiag('EXCEPTIONAL ERROR in connectGmail', err);
         if (onError) onError(new Error(err.message || 'Failed to initialize Google login.'));
@@ -120,8 +121,10 @@ export function connectGmail(onSuccess, onError, options = {}) {
 /**
  * Ensures a valid token exists. If expired but user previously connected,
  * automatically performs a silent token refresh without showing a popup.
+ * If silent refresh fails (e.g. browser cookie restrictions) and interactiveFallback is true,
+ * it presents a 1-click account selector without re-asking for permissions.
  */
-export function ensureValidToken() {
+export function ensureValidToken(interactiveFallback = false) {
     return new Promise((resolve, reject) => {
         const token = getStoredToken();
         if (token) {
@@ -139,8 +142,20 @@ export function ensureValidToken() {
         connectGmail(
             (freshToken) => resolve(freshToken),
             (err) => {
-                logDiag('Silent auto-refresh failed', err.message);
-                reject(new Error('Session expired. Please reconnect Gmail.'));
+                logDiag('Silent auto-refresh failed:', err.message);
+                if (interactiveFallback) {
+                    logDiag('Attempting interactive token renewal with account selector...');
+                    connectGmail(
+                        (interactiveToken) => resolve(interactiveToken),
+                        (interactiveErr) => {
+                            localStorage.removeItem(CONNECTED_KEY);
+                            reject(new Error('Session expired. Please reconnect Gmail.'));
+                        },
+                        { prompt: 'select_account' }
+                    );
+                } else {
+                    reject(new Error('Session expired. Please click Connect Gmail.'));
+                }
             },
             { prompt: '' } // silent refresh
         );
