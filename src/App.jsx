@@ -14,6 +14,7 @@ import Budget from './pages/Budget';
 import Settings  from './pages/Settings';
 import Wealth    from './pages/Wealth';
 import GmailSync from './pages/GmailSync';
+import AIAdvisor  from './pages/AIAdvisor';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
 const AppRoutes = () => {
@@ -60,6 +61,7 @@ const AppRoutes = () => {
                 <Route path="budgets" element={<Budget />} />
                 <Route path="wealth"      element={<Wealth />} />
                 <Route path="gmail-sync"  element={<GmailSync />} />
+                <Route path="ai-advisor"  element={<AIAdvisor />} />
                 <Route path="settings"    element={<Settings />} />
             </Route>
 

@@ -10,7 +10,8 @@ import Select from '../components/common/Select';
 import Modal from '../components/common/Modal';
 import IconPicker from '../components/common/IconPicker';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import { Settings as SettingsIcon, LogOut, Check, X, Shield, Info, CreditCard, Mail, Users, Plus, Edit2, Trash2, ShieldAlert, FolderOpen, AlertTriangle, Diamond, RefreshCw, User, ArrowUpCircle, Wallet, Banknote } from 'lucide-react';
+import { Settings as SettingsIcon, LogOut, Check, X, Shield, Info, CreditCard, Mail, Users, Plus, Edit2, Trash2, ShieldAlert, FolderOpen, AlertTriangle, Diamond, RefreshCw, User, ArrowUpCircle, Wallet, Banknote, Sparkles, Key } from 'lucide-react';
+import ApiKeyModal from '../components/ai/ApiKeyModal';
 import DynamicIcon from '../components/common/DynamicIcon';
 import './Settings.css';
 
@@ -53,6 +54,7 @@ const Settings = () => {
     const [showAddPaymentModal, setShowAddPaymentModal] = useState(false);
     const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
     const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
+    const [showAIKeyModal, setShowAIKeyModal] = useState(false);
 
     // Editing items
     const [editingCategory, setEditingCategory] = useState(null);
@@ -661,6 +663,28 @@ const Settings = () => {
                 </Card>
             )}
 
+            {/* AI Advisor Configuration Card */}
+            <Card className="settings-section">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div>
+                        <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                            <Sparkles size={22} color="var(--primary)" /> Google Gemini AI Advisor
+                        </h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                            Powers personalized spending trends, anomaly detection, and conversational Q&A.
+                        </p>
+                    </div>
+                    <Button variant="primary" onClick={() => setShowAIKeyModal(true)}>
+                        <Key size={16} /> Configure Gemini AI
+                    </Button>
+                </div>
+            </Card>
+
+            <ApiKeyModal
+                isOpen={showAIKeyModal}
+                onClose={() => setShowAIKeyModal(false)}
+                userId={user?.id}
+            />
 
             {/* Modals */}
             <Modal
