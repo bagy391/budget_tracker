@@ -12,6 +12,7 @@
  * 5. HSBC Bank (Credit Card)     - hsbc@mail.hsbc.co.in / hsbc@hsbc.bank.in
  * 6. HDFC Bank (Credit Card)     - alerts@hdfcbank.bank.in
  * 7. YES Bank (Credit Card)      - alerts@yes.bank.in
+ * 8. SBI Card (Credit Card)      - onlinesbicard@sbicard.com
  */
 
 export const PARSER_PATTERNS = [
@@ -115,6 +116,20 @@ export const PARSER_PATTERNS = [
             amount: /(?:INR|Rs\.?)\s*([\d,]+(?:\.\d{1,2})?)\s*has been spent/i,
             date:   /(\d{2}-\d{2}-\d{4}(?:\s+at\s+\d{2}:\d{2}(?::\d{2})?\s*(?:am|pm)?)?)/i,
             merchant: /at\s+([^\n\r]+?)\s+on\s+\d/i,
+        }
+    },
+
+    // ── SBI Card (Credit Card) ─────────────────────────────────────────────
+    {
+        id: 'sbi_credit_card',
+        bank: 'SBI Card',
+        senderMatch: /onlinesbicard@sbicard\.com/i,
+        subjectMatch: /Transaction Alert|SBI Card|spent/i,
+        paymentType: 'credit_card',
+        patterns: {
+            amount: /(?:INR|Rs\.?)\s*([\d,]+(?:\.\d{1,2})?)\s*(?:has been\s+|was\s+)?(?:spent|debited)/i,
+            date:   /(\d{2}[-\/]\d{2}[-\/]\d{2,4}(?:\s*(?:at|,)?\s*\d{2}:\d{2}(?::\d{2})?(?:\s*[ap]m)?)?|\d{1,2}\s+\w{3,},?\s+\d{2,4}(?:\s*(?:at|,)?\s*\d{2}:\d{2}(?::\d{2})?(?:\s*[ap]m)?)?)/i,
+            merchant: /\bat\s+([^\n\r]+?)\s+on\s+\d/i,
         }
     },
 

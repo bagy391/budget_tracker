@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
-import { useAuth }   from '../contexts/AuthContext';
-import Card    from '../components/common/Card';
-import Button  from '../components/common/Button';
-import Input   from '../components/common/Input';
-import Select  from '../components/common/Select';
+import { useAuth } from '../contexts/AuthContext';
+import Card from '../components/common/Card';
+import Button from '../components/common/Button';
+import Input from '../components/common/Input';
+import Select from '../components/common/Select';
 import DynamicIcon from '../components/common/DynamicIcon';
 import { connectGmail, disconnectGmail, isGmailConnected, getDiagLogs } from '../utils/gmail/gmailAuth';
 import { fetchNewMessages, markProcessed } from '../utils/gmail/gmailClient';
@@ -16,9 +16,9 @@ import {
 import './GmailSync.css';
 
 const PAYMENT_TYPE_ICONS = {
-    bank:        <Banknote size={14} />,
+    bank: <Banknote size={14} />,
     credit_card: <CreditCard size={14} />,
-    upi:         <Wallet size={14} />,
+    upi: <Wallet size={14} />,
 };
 
 function formatLastSynced(isoStr) {
@@ -39,24 +39,24 @@ function formatLastSynced(isoStr) {
 }
 
 const GmailSync = () => {
-    const { user }   = useAuth();
+    const { user } = useAuth();
     const { categories, paymentMethods, addExpense, currentFamily } = useBudget();
 
     const lastSyncKey = `gmail_last_synced_${user?.id || 'default'}`;
 
-    const [connected,    setConnected]    = useState(isGmailConnected());
-    const [connecting,   setConnecting]   = useState(false);
-    const [daysBack,     setDaysBack]     = useState('1');
-    const [syncing,      setSyncing]      = useState(false);
-    const [syncError,    setSyncError]    = useState('');
-    const [syncInfo,     setSyncInfo]     = useState('');
-    const [pending,      setPending]      = useState([]);
-    const [skipped,      setSkipped]      = useState(new Set());
-    const [debugData,    setDebugData]    = useState([]);
-    const [showDebug,    setShowDebug]    = useState(false);
-    const [showDiag,     setShowDiag]     = useState(false);
-    const [resetting,    setResetting]    = useState(false);
-    const [diagLogs,     setDiagLogs]     = useState([]);
+    const [connected, setConnected] = useState(isGmailConnected());
+    const [connecting, setConnecting] = useState(false);
+    const [daysBack, setDaysBack] = useState('1');
+    const [syncing, setSyncing] = useState(false);
+    const [syncError, setSyncError] = useState('');
+    const [syncInfo, setSyncInfo] = useState('');
+    const [pending, setPending] = useState([]);
+    const [skipped, setSkipped] = useState(new Set());
+    const [debugData, setDebugData] = useState([]);
+    const [showDebug, setShowDebug] = useState(false);
+    const [showDiag, setShowDiag] = useState(false);
+    const [resetting, setResetting] = useState(false);
+    const [diagLogs, setDiagLogs] = useState([]);
     const [lastSyncedAt, setLastSyncedAt] = useState(() => localStorage.getItem(lastSyncKey));
 
     // Update stored key when user changes
@@ -213,12 +213,12 @@ const GmailSync = () => {
     const handleSave = useCallback(async (messageId, formData) => {
         try {
             await addExpense({
-                title:             formData.description,
-                amount:            formData.amount,
-                description:       `Imported from Gmail (${formData.bank})`,
-                category_id:       formData.category_id || null,
+                title: formData.description,
+                amount: formData.amount,
+                description: `Imported from Gmail (${formData.bank})`,
+                category_id: formData.category_id || null,
                 payment_method_id: formData.payment_method_id || null,
-                transaction_date:  new Date(formData.date).toISOString(),
+                transaction_date: new Date(formData.date).toISOString(),
             });
             await markProcessed(user.id, [messageId]);
             setPending(prev => prev.filter(p => p.messageId !== messageId));
@@ -230,8 +230,8 @@ const GmailSync = () => {
     // ── Render ──────────────────────────────────────────────────────────────
 
     const expenseCategories = categories.filter(c => c.type === 'expense');
-    const visiblePending    = pending.filter(p => !skipped.has(p.messageId));
-    const clientIdVal       = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const visiblePending = pending.filter(p => !skipped.has(p.messageId));
+    const clientIdVal = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const formattedLastSync = formatLastSynced(lastSyncedAt);
 
     return (
@@ -269,10 +269,10 @@ const GmailSync = () => {
                         {connected
                             ? <Button variant="outline" onClick={handleDisconnect}>
                                 <Unlink size={16} /> Disconnect
-                              </Button>
+                            </Button>
                             : <Button variant="primary" onClick={handleConnect} loading={connecting}>
                                 <Mail size={16} /> Connect Gmail
-                              </Button>
+                            </Button>
                         }
                         <Button variant="ghost" onClick={handleManualRecheck} title="Re-check local storage token status">
                             <RefreshCw size={14} /> Re-check
@@ -309,7 +309,7 @@ const GmailSync = () => {
                         <div>• GIS Script Loaded: <code>{typeof window !== 'undefined' && Boolean(window.google?.accounts?.oauth2) ? '✅ Yes' : '❌ No'}</code></div>
                         <div>• Local Token Present: <code>{connected ? '✅ Yes' : '❌ No'}</code></div>
                         <div>• Last Synced At: <code>{lastSyncedAt || 'Never'}</code></div>
-                        
+
                         <div style={{ marginTop: '0.5rem', fontWeight: 'bold' }}>Event Logs ({diagLogs.length}):</div>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', background: 'var(--background)', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem' }}>
                             {diagLogs.length === 0 ? (
@@ -436,17 +436,17 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
     // Pre-fill payment method by matching paymentType
     const guessedMethod = paymentMethods.find(pm =>
         tx.paymentType === 'credit_card' ? pm.type === 'credit_card' :
-        tx.paymentType === 'upi'         ? pm.type === 'upi' || pm.name.toLowerCase().includes('upi') :
-                                           pm.type === 'bank'
+            tx.paymentType === 'upi' ? pm.type === 'upi' || pm.name.toLowerCase().includes('upi') :
+                pm.type === 'bank'
     );
 
     const [form, setForm] = useState({
-        amount:            tx.amount,
-        date:              tx.date,
-        description:       tx.description || '',
-        category_id:       '',
+        amount: tx.amount,
+        date: tx.date,
+        description: tx.description || '',
+        category_id: '',
         payment_method_id: guessedMethod?.id || '',
-        bank:              tx.bank,
+        bank: tx.bank,
     });
 
     const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
@@ -461,12 +461,12 @@ const PendingCard = ({ tx, categories, paymentMethods, onSave, onSkip }) => {
     const categoryOptions = categories.map(c => ({
         value: c.id,
         label: c.name,
-        icon:  <DynamicIcon name={c.icon} size={16} />,
+        icon: <DynamicIcon name={c.icon} size={16} />,
     }));
     const paymentOptions = paymentMethods.map(pm => ({
         value: pm.id,
         label: pm.name,
-        icon:  pm.type === 'credit_card' ? <CreditCard size={16} /> : pm.type === 'upi' ? <Wallet size={16} /> : <Banknote size={16} />,
+        icon: pm.type === 'credit_card' ? <CreditCard size={16} /> : pm.type === 'upi' ? <Wallet size={16} /> : <Banknote size={16} />,
     }));
 
     return (

@@ -24,13 +24,13 @@ export function parseEmail(message, debug = false) {
     const debugLog = [];
 
     for (const pattern of PARSER_PATTERNS) {
-        const senderOk  = pattern.senderMatch.test(sender);
+        const senderOk = pattern.senderMatch.test(sender);
         const subjectOk = !pattern.subjectMatch || pattern.subjectMatch.test(subject);
 
         if (debug) {
             debugLog.push({
-                patternId:   pattern.id,
-                bank:        pattern.bank,
+                patternId: pattern.id,
+                bank: pattern.bank,
                 senderOk,
                 subjectOk,
                 senderTried: sender,
@@ -38,7 +38,7 @@ export function parseEmail(message, debug = false) {
             });
         }
 
-        if (!senderOk)  continue;
+        if (!senderOk) continue;
         if (!subjectOk) continue;
 
         const currentLog = debugLog[debugLog.length - 1];
@@ -53,7 +53,7 @@ export function parseEmail(message, debug = false) {
         // 2. Skip Credit / Refund transactions (only debits / spends allowed)
         const isExplicitCredit =
             /\b(?:credited|refund|refunded|reversal|reversed|cashback|credit alert)\b/i.test(subject) ||
-            /(?:amount credited|has been credited|credited to|credited with|refund of|cashback of|reversal of)/i.test(normBody);
+            /(?:amount credited|has been credited|credited to|credited with|refund of|cashback of|reversal of|received|Payment received|Received)/i.test(normBody);
         const hasDebitKeyword =
             /\b(?:debited|spent|used for|paid|payment done|processed successfully|purchase|bill)\b/i.test(fullText);
 
@@ -114,14 +114,14 @@ export function parseEmail(message, debug = false) {
         }
 
         return {
-            messageId:   id,
-            bank:        pattern.bank,
+            messageId: id,
+            bank: pattern.bank,
             paymentType: pattern.paymentType,
             amount,
-            date:        transactionDate,
+            date: transactionDate,
             description,
-            rawSnippet:  normBody.trim().slice(0, 200),
-            _debug:      debug ? debugLog : undefined,
+            rawSnippet: normBody.trim().slice(0, 200),
+            _debug: debug ? debugLog : undefined,
         };
     }
 
@@ -135,13 +135,13 @@ export function parseEmail(message, debug = false) {
  * Pass debug=true to get failure reasons for unmatched emails.
  */
 export function parseEmails(messages, debug = false) {
-    const matched   = [];
+    const matched = [];
     const unmatched = [];
     for (const msg of messages) {
         const result = parseEmail(msg, debug);
-        if (!result)                    { unmatched.push({ messageId: msg.id, sender: msg.sender, subject: msg.subject, debugLog: [] }); }
+        if (!result) { unmatched.push({ messageId: msg.id, sender: msg.sender, subject: msg.subject, debugLog: [] }); }
         else if (result.matched === false) { unmatched.push(result); }
-        else                            { matched.push(result); }
+        else { matched.push(result); }
     }
     return debug ? { matched, unmatched } : { matched, unmatched: [] };
 }
@@ -169,7 +169,7 @@ function tryParseDateTime(str, fallbackIsoDate) {
                 fallbackHHMM = `${hh}:${min}`;
                 fallbackYYYYMMDD = `${yyyy}-${mm}-${dd}`;
             }
-        } catch (_) {}
+        } catch (_) { }
     }
 
     if (!str) {
